@@ -12,6 +12,8 @@
  */
 package org.openhab.core.io.rest.core.internal.item;
 
+import java.io.IOException;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -213,7 +216,14 @@ public class ItemResource implements RESTResource {
         final Set<String> namespaces = splitAndFilterNamespaces(namespaceSelector, locale);
 
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
-
+        Principal principal;
+        try {
+            principal = authFilter.getPrincipalFromRequestContext((ContainerRequestContext) httpHeaders);
+        } catch (IOException io) {
+            principal = authFilter.anonymousPrincipal;
+        }
+        System.out.println("THE NAME OF THE PRINCIPAL, IT WORKS!!");
+        System.out.println(principal.getName());
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags).stream() //
                 .map(item -> EnrichedItemDTOMapper.map(item, recursive, null, uriBuilder, locale)) //
                 .peek(dto -> addMetadata(dto, namespaces, null)) //

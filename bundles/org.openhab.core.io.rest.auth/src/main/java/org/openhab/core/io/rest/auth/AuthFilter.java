@@ -98,6 +98,8 @@ public class AuthFilter implements ContainerRequestFilter {
     private final JwtHelper jwtHelper;
     private final UserRegistry userRegistry;
 
+    public final AnonymousPrincipal anonymousPrincipal = new AnonymousPrincipal();
+
     private RegistryChangeListener<User> userRegistryListener = new RegistryChangeListener<User>() {
 
         @Override
@@ -315,28 +317,28 @@ public class AuthFilter implements ContainerRequestFilter {
                             }
                             return securityContext.getUserPrincipal();
                         } else {
-                            return new AnonymousPrincipal();
+                            return this.anonymousPrincipal;
                         }
                     } else {
-                        return new AnonymousPrincipal();
+                        return this.anonymousPrincipal;
                     }
                 } else if (implicitUserRole) {
                     requestContext.setSecurityContext(new AnonymousUserSecurityContext());
-                    return new AnonymousPrincipal();
+                    return this.anonymousPrincipal;
                 } else {
-                    return new AnonymousPrincipal();
+                    return this.anonymousPrincipal;
                 }
             } catch (AuthenticationException e) {
                 logger.warn("Unauthorized API request: {}", e.getMessage());
                 requestContext.abortWith(JSONResponse.createErrorResponse(Status.UNAUTHORIZED, "Invalid credentials"));
-                return new AnonymousPrincipal();
+                return this.anonymousPrincipal;
             }
         } else {
-            return new AnonymousPrincipal();
+            return this.anonymousPrincipal;
         }
     }
 
-    public class AnonymousPrincipal implements Principal {
+    private class AnonymousPrincipal implements Principal {
         private final String name = "user";
 
         @Override
