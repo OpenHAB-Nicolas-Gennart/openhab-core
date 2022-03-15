@@ -187,7 +187,7 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         }
 
         // We make sure that it remains at least one user with the administrator role.
-        if (countRole("administrator") == 1 && oldRole.equals("administrator") && user.getRoles().contains(oldRole)) {
+        if (countRole("administrator") == 1 && oldRole.equals("administrator")) {
             throw new IllegalArgumentException(
                     "There must always be at least one user with the administrator role, so we can't remove it.");
         }
@@ -245,7 +245,7 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     @Override
     public boolean removeRole(User user, String role) {
         // We make sure that it remains at least one user with the administrator role.
-        if (countRole("administrator") == 1 && role.equals("administrator") && user.getRoles().contains(role)) {
+        if (countRole("administrator") == 1 && role.equals("administrator")) {
             throw new IllegalArgumentException(
                     "There must always be at least one user with the administrator role, so we can't remove it.");
         }

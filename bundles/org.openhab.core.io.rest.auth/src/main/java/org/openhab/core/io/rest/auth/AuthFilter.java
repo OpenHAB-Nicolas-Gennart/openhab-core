@@ -10,12 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth.internal;
+package org.openhab.core.io.rest.auth;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
@@ -66,7 +67,8 @@ import org.slf4j.LoggerFactory;
  * @author Kai Kreuzer - Add null annotations, constructor initialization
  */
 @PreMatching
-@Component(configurationPid = "org.openhab.restauth", property = Constants.SERVICE_PID + "=org.openhab.restauth")
+@Component(service = AuthFilter.class, configurationPid = "org.openhab.restauth", property = Constants.SERVICE_PID
+        + "=org.openhab.restauth")
 @ConfigurableService(category = "system", label = "API Security", description_uri = AuthFilter.CONFIG_URI)
 @JaxrsExtension
 @JaxrsApplicationSelect("(" + JaxrsWhiteboardConstants.JAX_RS_NAME + "=" + RESTConstants.JAX_RS_NAME + ")")
@@ -260,6 +262,86 @@ public class AuthFilter implements ContainerRequestFilter {
                 logger.warn("Unauthorized API request: {}", e.getMessage());
                 requestContext.abortWith(JSONResponse.createErrorResponse(Status.UNAUTHORIZED, "Invalid credentials"));
             }
+        }
+    }
+
+    /**
+     * Verify the token of the request and return the user (Principal) of the request.
+     *
+     * @param requestContext The request done by the client
+     * @return If the token is incorrect or the authentication failed return an AnonymousPrincipal, otherwise return the
+     *         Principal.
+     * @throws IOException
+     */
+    public Principal getPrincipalFromRequestContext(@Nullable ContainerRequestContext requestContext)
+            throws IOException {
+        if (requestContext != null) {
+            try {
+                String altTokenHeader = requestContext.getHeaderString(ALT_AUTH_HEADER);
+                SecurityContext securityContext = null;
+                if (altTokenHeader != null) {
+                    securityContext = authenticateBearerToken(altTokenHeader);
+                    requestContext.setSecurityContext(securityContext);
+                    return securityContext.getUserPrincipal();
+                }
+                String authHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+                if (authHeader != null) {
+                    String[] authParts = authHeader.split(" ");
+                    if (authParts.length == 2) {
+                        String authType = authParts[0];
+                        String authValue = authParts[1];
+                        if ("Bearer".equalsIgnoreCase(authType)) {
+                            securityContext = authenticateBearerToken(authValue);
+                            requestContext.setSecurityContext(securityContext);
+                            return securityContext.getUserPrincipal();
+                        } else if ("Basic".equalsIgnoreCase(authType)) {
+                            String[] decodedCredentials = new String(Base64.getDecoder().decode(authValue), "UTF-8")
+                                    .split(":");
+                            if (decodedCredentials.length > 2) {
+                                throw new AuthenticationException("Invalid Basic authentication credential format");
+                            }
+                            switch (decodedCredentials.length) {
+                                case 1:
+                                    securityContext = authenticateBearerToken(decodedCredentials[0]);
+                                    requestContext.setSecurityContext(securityContext);
+                                    break;
+                                case 2:
+                                    if (!allowBasicAuth) {
+                                        throw new AuthenticationException(
+                                                "Basic authentication with username/password is not allowed");
+                                    }
+                                    securityContext = authenticateBasicAuth(authValue);
+                                    requestContext.setSecurityContext(securityContext);
+                            }
+                            return securityContext.getUserPrincipal();
+                        } else {
+                            return new AnonymousPrincipal();
+                        }
+                    } else {
+                        return new AnonymousPrincipal();
+                    }
+                } else if (implicitUserRole) {
+                    requestContext.setSecurityContext(new AnonymousUserSecurityContext());
+                    return new AnonymousPrincipal();
+                } else {
+                    return new AnonymousPrincipal();
+                }
+            } catch (AuthenticationException e) {
+                logger.warn("Unauthorized API request: {}", e.getMessage());
+                requestContext.abortWith(JSONResponse.createErrorResponse(Status.UNAUTHORIZED, "Invalid credentials"));
+                return new AnonymousPrincipal();
+            }
+        } else {
+            return new AnonymousPrincipal();
+        }
+    }
+
+    public class AnonymousPrincipal implements Principal {
+        private final String name = "user";
+
+        @Override
+        public String getName() {
+            return name;
         }
     }
 }

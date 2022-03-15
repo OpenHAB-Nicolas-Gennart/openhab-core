@@ -10,11 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth.internal;
+package org.openhab.core.io.rest.auth;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.openhab.core.io.rest.auth.internal.ExpiringUserSecurityContextCache.*;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -72,7 +71,7 @@ public class ExpiringUserSecurityContextCacheTest {
     @Test
     public void cachedValuesAreReturned() {
         ExpiringUserSecurityContextCache cache = createCache(ONE_HOUR);
-        Map<String, UserSecurityContext> values = createValues(MAX_SIZE);
+        Map<String, UserSecurityContext> values = createValues(ExpiringUserSecurityContextCache.MAX_SIZE);
         addValues(cache, values);
         assertValuesAreCached(values, cache);
     }
@@ -80,14 +79,14 @@ public class ExpiringUserSecurityContextCacheTest {
     @Test
     public void nonCachedValuesAreNotReturned() {
         ExpiringUserSecurityContextCache cache = createCache(ONE_HOUR);
-        Map<String, UserSecurityContext> values = createValues(MAX_SIZE);
+        Map<String, UserSecurityContext> values = createValues(ExpiringUserSecurityContextCache.MAX_SIZE);
         assertValuesAreNotCached(values, cache);
     }
 
     @Test
     public void clearedValuesAreNotReturned() {
         ExpiringUserSecurityContextCache cache = createCache(ONE_HOUR);
-        Map<String, UserSecurityContext> values = createValues(MAX_SIZE);
+        Map<String, UserSecurityContext> values = createValues(ExpiringUserSecurityContextCache.MAX_SIZE);
         addValues(cache, values);
         cache.clear();
         assertValuesAreNotCached(values, cache);
@@ -97,7 +96,7 @@ public class ExpiringUserSecurityContextCacheTest {
     public void eldestEntriesAreRemovedWhenMaxSizeIsExceeded() {
         ExpiringUserSecurityContextCache cache = createCache(ONE_HOUR);
         int removed = 20;
-        Map<String, UserSecurityContext> values = createValues(MAX_SIZE + removed);
+        Map<String, UserSecurityContext> values = createValues(ExpiringUserSecurityContextCache.MAX_SIZE + removed);
         addValues(cache, values);
 
         Map<String, UserSecurityContext> removedValues = new LinkedHashMap<>();
@@ -120,10 +119,10 @@ public class ExpiringUserSecurityContextCacheTest {
     @Test
     public void expiredEntriesAreRemoved() {
         ExpiringUserSecurityContextCache cache = createCache(Duration.ZERO);
-        Map<String, UserSecurityContext> values = createValues(MAX_SIZE);
+        Map<String, UserSecurityContext> values = createValues(ExpiringUserSecurityContextCache.MAX_SIZE);
         addValues(cache, values);
 
-        for (int i = 0; i < CLEANUP_FREQUENCY; i++) {
+        for (int i = 0; i < ExpiringUserSecurityContextCache.CLEANUP_FREQUENCY; i++) {
             cache.get("key");
         }
 

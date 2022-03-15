@@ -149,7 +149,7 @@ public class JsonStorage<T> implements Storage<T> {
         if (value == null) {
             return remove(key);
         }
-
+        System.out.println(file.getAbsolutePath());
         StorageEntry val = new StorageEntry(value.getClass().getName(), entityMapper.toJsonTree(value));
         StorageEntry previousValue = map.put(key, val);
         deferredCommit();

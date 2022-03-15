@@ -10,28 +10,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth.internal;
+package org.openhab.core.io.rest.auth;
 
 import java.util.Date;
 
 /**
- * A DTO representing a user session, without the sensible information.
+ * A DTO representing a user API token, without the sensible information.
  *
  * @author Yannick Schaus - initial contribution
  */
-public class UserSessionDTO {
-    public String sessionId;
+public class UserApiTokenDTO {
+    public String name;
     public Date createdTime;
-    public Date lastRefreshTime;
-    public String clientId;
     public String scope;
 
-    public UserSessionDTO(String sessionId, Date createdTime, Date lastRefreshTime, String clientId, String scope) {
+    public UserApiTokenDTO(String name, Date createdTime, String scope) {
         super();
-        this.sessionId = sessionId;
+        this.name = name;
         this.createdTime = createdTime;
-        this.lastRefreshTime = lastRefreshTime;
-        this.clientId = clientId;
         this.scope = scope;
     }
 }

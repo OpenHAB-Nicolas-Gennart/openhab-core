@@ -55,6 +55,7 @@ import org.openhab.core.io.rest.LocaleService;
 import org.openhab.core.io.rest.RESTConstants;
 import org.openhab.core.io.rest.RESTResource;
 import org.openhab.core.io.rest.Stream2JSONInputStream;
+import org.openhab.core.io.rest.auth.AuthFilter;
 import org.openhab.core.io.rest.core.item.EnrichedGroupItemDTO;
 import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
 import org.openhab.core.io.rest.core.item.EnrichedItemDTOMapper;
@@ -167,6 +168,7 @@ public class ItemResource implements RESTResource {
     private final ManagedItemProvider managedItemProvider;
     private final MetadataRegistry metadataRegistry;
     private final MetadataSelectorMatcher metadataSelectorMatcher;
+    private final AuthFilter authFilter;
 
     @Activate
     public ItemResource(//
@@ -177,7 +179,7 @@ public class ItemResource implements RESTResource {
             final @Reference LocaleService localeService, //
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
-            final @Reference MetadataSelectorMatcher metadataSelectorMatcher) {
+            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference AuthFilter authFilter) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -186,6 +188,7 @@ public class ItemResource implements RESTResource {
         this.managedItemProvider = managedItemProvider;
         this.metadataRegistry = metadataRegistry;
         this.metadataSelectorMatcher = metadataSelectorMatcher;
+        this.authFilter = authFilter;
     }
 
     private UriBuilder uriBuilder(final UriInfo uriInfo, final HttpHeaders httpHeaders) {
@@ -722,7 +725,7 @@ public class ItemResource implements RESTResource {
     /**
      * helper: Response to be sent to client if a Thing cannot be found
      *
-     * @param thingUID
+     * @param
      * @return Response configured for 'item not found'
      */
     private static Response getItemNotFoundResponse(String itemname) {

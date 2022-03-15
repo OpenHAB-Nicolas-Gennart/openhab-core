@@ -14,9 +14,7 @@ package org.openhab.core.internal.items;
 
 import static java.util.stream.Collectors.toList;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -112,8 +110,34 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
 
     @Override
     public Collection<Item> getItems() {
+        System.out.println("getALL getItems");
+        /*
+         * Collection<Item> items = getAll();
+         * 
+         * System.out.println(items);
+         * System.out.println(items.size());
+         * System.out.println(items.toArray());
+         * for (Item item : items) {
+         * System.out.println(item.getUID());
+         * System.out.println(item.getGroupNames());
+         * }
+         */
         return getAll();
     }
+
+    /*
+     * private Collection<Item> filterItemsWithRoles(Collection<Item> items) {
+     * return null;
+     * }
+     * 
+     * private LinkedList<List<String>> getAllGroups() {
+     * LinkedList<List<String>> groups = new LinkedList<>();
+     * for (Item item : getAll()) {
+     * groups.add(item.getGroupNames());
+     * }
+     * return groups;
+     * }
+     */
 
     @Override
     public Collection<Item> getItemsOfType(String type) {
@@ -123,8 +147,11 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             if (item.getType().equals(type)) {
                 matchedItems.add(item);
             }
+            System.out.println("PRINT ITEM OF TYPE 1!!!!");
+            System.out.println(item);
         }
 
+        System.out.println(matchedItems);
         return matchedItems;
     }
 
@@ -137,8 +164,10 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             if (item.getName().matches(regex)) {
                 matchedItems.add(item);
             }
+            System.out.println("PRINT ITEM getItems() 2!!!!");
+            System.out.println(item);
         }
-
+        System.out.println(matchedItems);
         return matchedItems;
     }
 
@@ -328,8 +357,13 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         for (Item item : getItems()) {
             if (itemHasTags(item, tags)) {
                 filteredItems.add(item);
+
             }
+            System.out.println("PRINT ITEM getItemsByTag 3!!!!");
+            System.out.println(item);
         }
+        System.out.println(filteredItems);
+
         return filteredItems;
     }
 
@@ -352,7 +386,10 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             if (typeFilter.isInstance(item)) {
                 filteredItems.add((T) item);
             }
+            System.out.println("PRINT ITEM getItemsByTag 4!!!!");
+            System.out.println(item);
         }
+        System.out.println(items);
         return filteredItems;
     }
 
@@ -363,7 +400,10 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             if (itemHasTags(item, tags)) {
                 filteredItems.add(item);
             }
+            System.out.println("PRINT ITEM getItemsOfType 5!!!!");
+            System.out.println(item);
         }
+        System.out.println(filteredItems);
         return filteredItems;
     }
 

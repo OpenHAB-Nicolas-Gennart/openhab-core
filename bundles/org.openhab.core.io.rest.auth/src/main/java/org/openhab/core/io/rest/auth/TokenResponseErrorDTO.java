@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth.internal;
+package org.openhab.core.io.rest.auth;
 
 /**
  * A DTO object for an unsuccessful token endpoint response, as per RFC 6749, Section 5.2.

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth.internal;
+package org.openhab.core.io.rest.auth;
 
 import java.net.URI;
 import java.security.MessageDigest;
@@ -52,7 +52,6 @@ import org.openhab.core.io.rest.JSONResponse;
 import org.openhab.core.io.rest.RESTConstants;
 import org.openhab.core.io.rest.RESTResource;
 import org.openhab.core.io.rest.Stream2JSONInputStream;
-import org.openhab.core.io.rest.auth.internal.TokenEndpointException.ErrorType;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -129,7 +128,7 @@ public class TokenResource implements RESTResource {
                     return processRefreshTokenGrant(clientId, refreshToken, sessionCookie);
 
                 default:
-                    throw new TokenEndpointException(ErrorType.UNSUPPORTED_GRANT_TYPE);
+                    throw new TokenEndpointException(TokenEndpointException.ErrorType.UNSUPPORTED_GRANT_TYPE);
             }
         } catch (TokenEndpointException e) {
             logger.warn("Token issuing failed: {}", e.getMessage());
@@ -279,23 +278,23 @@ public class TokenResource implements RESTResource {
 
         if (!user.isPresent()) {
             logger.warn("Couldn't find a user with the provided authentication code pending");
-            throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
         }
 
         ManagedUser managedUser = (ManagedUser) user.get();
         PendingToken pendingToken = managedUser.getPendingToken();
         if (pendingToken == null) {
-            throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
         }
         if (!pendingToken.getClientId().equals(clientId)) {
             logger.warn("client_id '{}' doesn't match pending token information '{}'", clientId,
                     pendingToken.getClientId());
-            throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
         }
         if (!pendingToken.getRedirectUri().equals(redirectUri)) {
             logger.warn("redirect_uri '{}' doesn't match pending token information '{}'", redirectUri,
                     pendingToken.getRedirectUri());
-            throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
         }
 
         // create a new session ID and refresh token
@@ -309,13 +308,13 @@ public class TokenResource implements RESTResource {
             String codeChallenge = pendingToken.getCodeChallenge();
             if (codeChallenge == null || codeVerifier == null) {
                 logger.warn("the PKCE code challenge or code verifier information is missing");
-                throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+                throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
             }
             switch (codeChallengeMethod) {
                 case "plain":
                     if (!codeVerifier.equals(codeChallenge)) {
                         logger.warn("PKCE verification failed");
-                        throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+                        throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
                     }
                     break;
                 case "S256":
@@ -323,12 +322,12 @@ public class TokenResource implements RESTResource {
                     String computedCodeChallenge = Base64Url.encode(sha256Digest.digest(codeVerifier.getBytes()));
                     if (!computedCodeChallenge.equals(codeChallenge)) {
                         logger.warn("PKCE verification failed");
-                        throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+                        throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
                     }
                     break;
                 default:
                     logger.warn("PKCE transformation algorithm '{}' not supported", codeChallengeMethod);
-                    throw new TokenEndpointException(ErrorType.INVALID_REQUEST);
+                    throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_REQUEST);
             }
         }
 
@@ -359,7 +358,7 @@ public class TokenResource implements RESTResource {
                 newSession.setSessionCookie(true);
             } catch (Exception e) {
                 logger.warn("Error while setting a session cookie: {}", e.getMessage());
-                throw new TokenEndpointException(ErrorType.UNAUTHORIZED_CLIENT);
+                throw new TokenEndpointException(TokenEndpointException.ErrorType.UNAUTHORIZED_CLIENT);
             }
         }
 
@@ -374,7 +373,7 @@ public class TokenResource implements RESTResource {
     private Response processRefreshTokenGrant(String clientId, @Nullable String refreshToken,
             @Nullable Cookie sessionCookie) throws TokenEndpointException {
         if (refreshToken == null) {
-            throw new TokenEndpointException(ErrorType.INVALID_REQUEST);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_REQUEST);
         }
 
         // find an user associated with the provided refresh token
@@ -384,7 +383,7 @@ public class TokenResource implements RESTResource {
 
         if (!refreshTokenUser.isPresent()) {
             logger.warn("Couldn't find a user with a session matching the provided refresh_token");
-            throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+            throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
         }
 
         // get the session from the refresh token
@@ -398,7 +397,7 @@ public class TokenResource implements RESTResource {
             if (sessionCookie == null || !sessionCookie.getValue().equals(session.getSessionId())) {
                 logger.warn("Not refreshing token for session {} of user {}, missing or invalid session cookie",
                         session.getSessionId(), refreshTokenManagedUser.getName());
-                throw new TokenEndpointException(ErrorType.INVALID_GRANT);
+                throw new TokenEndpointException(TokenEndpointException.ErrorType.INVALID_GRANT);
             }
         }
 
