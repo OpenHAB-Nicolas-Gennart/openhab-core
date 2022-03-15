@@ -212,11 +212,8 @@ public class ItemResource implements RESTResource {
             @QueryParam("metadata") @Parameter(description = "metadata selector") @Nullable String namespaceSelector,
             @DefaultValue("false") @QueryParam("recursive") @Parameter(description = "get member items recursively") boolean recursive,
             @QueryParam("fields") @Parameter(description = "limit output to the given fields (comma separated)") @Nullable String fields) {
-        final Locale locale = localeService.getLocale(language);
-        final Set<String> namespaces = splitAndFilterNamespaces(namespaceSelector, locale);
-
-        final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
         Principal principal;
+        System.out.println("WATH ?");
         try {
             principal = authFilter.getPrincipalFromRequestContext((ContainerRequestContext) httpHeaders);
         } catch (IOException io) {
@@ -224,6 +221,12 @@ public class ItemResource implements RESTResource {
         }
         System.out.println("THE NAME OF THE PRINCIPAL, IT WORKS!!");
         System.out.println(principal.getName());
+
+        final Locale locale = localeService.getLocale(language);
+        final Set<String> namespaces = splitAndFilterNamespaces(namespaceSelector, locale);
+
+        final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
+
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags).stream() //
                 .map(item -> EnrichedItemDTOMapper.map(item, recursive, null, uriBuilder, locale)) //
                 .peek(dto -> addMetadata(dto, namespaces, null)) //
