@@ -38,7 +38,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -58,7 +57,7 @@ import org.openhab.core.io.rest.LocaleService;
 import org.openhab.core.io.rest.RESTConstants;
 import org.openhab.core.io.rest.RESTResource;
 import org.openhab.core.io.rest.Stream2JSONInputStream;
-import org.openhab.core.io.rest.auth.AuthFilter;
+import org.openhab.core.io.rest.auth.VerifyToken;
 import org.openhab.core.io.rest.core.item.EnrichedGroupItemDTO;
 import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
 import org.openhab.core.io.rest.core.item.EnrichedItemDTOMapper;
@@ -171,7 +170,7 @@ public class ItemResource implements RESTResource {
     private final ManagedItemProvider managedItemProvider;
     private final MetadataRegistry metadataRegistry;
     private final MetadataSelectorMatcher metadataSelectorMatcher;
-    private final AuthFilter authFilter;
+    private final VerifyToken verifyToken;
 
     @Activate
     public ItemResource(//
@@ -182,7 +181,8 @@ public class ItemResource implements RESTResource {
             final @Reference LocaleService localeService, //
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
-            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference AuthFilter authFilter) {
+            final @Reference MetadataSelectorMatcher metadataSelectorMatcher,
+            final @Reference VerifyToken verifyToken) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -191,7 +191,7 @@ public class ItemResource implements RESTResource {
         this.managedItemProvider = managedItemProvider;
         this.metadataRegistry = metadataRegistry;
         this.metadataSelectorMatcher = metadataSelectorMatcher;
-        this.authFilter = authFilter;
+        this.verifyToken = verifyToken;
     }
 
     private UriBuilder uriBuilder(final UriInfo uriInfo, final HttpHeaders httpHeaders) {
@@ -212,19 +212,18 @@ public class ItemResource implements RESTResource {
             @QueryParam("metadata") @Parameter(description = "metadata selector") @Nullable String namespaceSelector,
             @DefaultValue("false") @QueryParam("recursive") @Parameter(description = "get member items recursively") boolean recursive,
             @QueryParam("fields") @Parameter(description = "limit output to the given fields (comma separated)") @Nullable String fields) {
-        Principal principal;
-        System.out.println("WATH ?");
-        try {
-            principal = authFilter.getPrincipalFromRequestContext((ContainerRequestContext) httpHeaders);
-        } catch (IOException io) {
-            principal = authFilter.anonymousPrincipal;
-        }
-        System.out.println("THE NAME OF THE PRINCIPAL, IT WORKS!!");
-        System.out.println(principal.getName());
 
         final Locale locale = localeService.getLocale(language);
         final Set<String> namespaces = splitAndFilterNamespaces(namespaceSelector, locale);
-
+        Principal principal;
+        System.out.println("DEBUG");
+        try {
+            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+        } catch (IOException io) {
+            principal = verifyToken.anonymousPrincipal;
+        }
+        System.out.println("THE NAME OF THE PRINCIPAL, IT WORKS!!");
+        System.out.println(principal.getName());
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags).stream() //

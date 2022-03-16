@@ -1,16 +1,17 @@
+package org.openhab.core.io.rest.auth.internal;
+
 /**
- * Copyright (c) 2010-2022 Contributors to the openHAB project
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0
- *
- * SPDX-License-Identifier: EPL-2.0
- */
-package org.openhab.core.io.rest.auth;
+* Copyright (c) 2010-2022 Contributors to the openHAB project
+*
+* See the NOTICE file(s) distributed with this work for additional
+* information.
+*
+* This program and the accompanying materials are made available under the
+* terms of the Eclipse Public License 2.0 which is available at
+* http://www.eclipse.org/legal/epl-2.0
+*
+* SPDX-License-Identifier: EPL-2.0
+*/
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,15 +30,15 @@ import org.eclipse.jdt.annotation.Nullable;
  */
 @NonNullByDefault
 public class ExpiringUserSecurityContextCache {
-    static final int MAX_SIZE = 10;
-    static final int CLEANUP_FREQUENCY = 10;
+    static public int MAX_SIZE = 10;
+    static public int CLEANUP_FREQUENCY = 10;
 
     private final long keepPeriod;
     private final Map<String, Entry> entryMap;
 
-    private int calls = 0;
+    public int calls = 0;
 
-    ExpiringUserSecurityContextCache(long expirationTime) {
+    public ExpiringUserSecurityContextCache(long expirationTime) {
         this.keepPeriod = expirationTime;
         entryMap = new LinkedHashMap<>() {
             private static final long serialVersionUID = -1220310861591070462L;
@@ -48,7 +49,7 @@ public class ExpiringUserSecurityContextCache {
         };
     }
 
-    synchronized @Nullable UserSecurityContext get(String key) {
+    public synchronized @Nullable UserSecurityContext get(String key) {
         calls++;
         if (calls >= CLEANUP_FREQUENCY) {
             new HashSet<>(entryMap.keySet()).forEach(k -> getEntry(k));
@@ -61,7 +62,7 @@ public class ExpiringUserSecurityContextCache {
         return null;
     }
 
-    synchronized void put(String key, UserSecurityContext value) {
+    public synchronized void put(String key, UserSecurityContext value) {
         entryMap.put(key, new Entry(System.currentTimeMillis(), value));
     }
 

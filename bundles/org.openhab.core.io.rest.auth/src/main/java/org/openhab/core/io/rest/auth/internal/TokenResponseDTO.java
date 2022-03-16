@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth;
+package org.openhab.core.io.rest.auth.internal;
 
 import org.openhab.core.auth.User;
 

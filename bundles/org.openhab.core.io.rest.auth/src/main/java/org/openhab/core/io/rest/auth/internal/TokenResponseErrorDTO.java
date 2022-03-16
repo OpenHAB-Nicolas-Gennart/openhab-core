@@ -10,12 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth;
+package org.openhab.core.io.rest.auth.internal;
 
 /**
  * A DTO object for an unsuccessful token endpoint response, as per RFC 6749, Section 5.2.
  *
- * {@linkplain https://tools.ietf.org/html/rfc6749#section-5.2}
+ * {@linkplainhttps://tools.ietf.org/html/rfc6749#section-5.2}
  *
  * @author Yannick Schaus - initial contribution
  */
@@ -27,7 +27,7 @@ public class TokenResponseErrorDTO {
     /**
      * Builds a token endpoint response for a specific error
      *
-     * @param the error
+     * @param error
      */
     public TokenResponseErrorDTO(String error) {
         this.error = error;

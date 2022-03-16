@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.io.rest.auth;
+package org.openhab.core.io.rest.auth.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.AuthenticationException;
@@ -19,7 +19,7 @@ import org.openhab.core.auth.AuthenticationException;
  * An exception when the token endpoint encounters an error and must return an error response, according to RFC 6749
  * Section 5.2.
  *
- * {@linkplain https://tools.ietf.org/html/rfc6749#section-5.2}
+ * {@linkplain <a href="https://tools.ietf.org/html/rfc6749#section-5.2">...</a>}
  *
  * @author Yannick Schaus - initial contribution
  */
