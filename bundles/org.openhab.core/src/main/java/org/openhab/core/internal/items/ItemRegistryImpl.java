@@ -14,11 +14,16 @@ package org.openhab.core.internal.items;
 
 import static java.util.stream.Collectors.toList;
 
+import java.security.Principal;
 import java.util.*;
+
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.core.auth.ManagedUser;
+import org.openhab.core.auth.User;
+import org.openhab.core.auth.UserRegistry;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.openhab.core.common.registry.Provider;
 import org.openhab.core.events.EventPublisher;
@@ -48,6 +53,7 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vesalainen.util.Pair;
 
 /**
  * This is the main implementing class of the {@link ItemRegistry} interface. It
@@ -70,12 +76,22 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     private final MetadataRegistry metadataRegistry;
     private @Nullable UnitProvider unitProvider;
     private @Nullable ItemStateConverter itemStateConverter;
+    private final UserRegistry userRegistry;
+
+    @Activate
+    public ItemRegistryImpl(final @Reference MetadataRegistry metadataRegistry, final @Reference UserRegistry userRegistry) {
+        super(ItemProvider.class);
+        this.metadataRegistry = metadataRegistry;
+        this.userRegistry = userRegistry;
+    }
 
     @Activate
     public ItemRegistryImpl(final @Reference MetadataRegistry metadataRegistry) {
         super(ItemProvider.class);
         this.metadataRegistry = metadataRegistry;
+        this.userRegistry = null;
     }
+
 
     @Override
     public Item getItem(String name) throws ItemNotFoundException {
@@ -109,41 +125,60 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     }
 
     @Override
-    public Collection<Item> getItems() {
-        System.out.println("getALL getItems");
-        /*
-         * Collection<Item> items = getAll();
-         * 
-         * System.out.println(items);
-         * System.out.println(items.size());
-         * System.out.println(items.toArray());
-         * for (Item item : items) {
-         * System.out.println(item.getUID());
-         * System.out.println(item.getGroupNames());
-         * }
-         */
+    public Collection<Item> getItems(Principal principal) {
+       /* System.out.println("getALL getItems");
+
+        HashMap<Item, String> itemsUids = new HashMap<>();
+        for (Item item : getAll()) {
+            itemsUids.put(item, item.getUID());
+        }
+        HashMap<Item,List<String>> groupsItems = getAllGroups();*/
+
         return getAll();
     }
 
-    /*
-     * private Collection<Item> filterItemsWithRoles(Collection<Item> items) {
-     * return null;
-     * }
-     * 
-     * private LinkedList<List<String>> getAllGroups() {
-     * LinkedList<List<String>> groups = new LinkedList<>();
-     * for (Item item : getAll()) {
-     * groups.add(item.getGroupNames());
-     * }
-     * return groups;
-     * }
+    /*private HashMap<Item, List<String>> getAllGroups() {
+        HashMap<Item,List<String>> groups = new HashMap<>();
+        for (Item item : getAll()) {
+            groups.put(item,item.getGroupNames());
+        }
+        return groups;
+    }*/
+
+    /* /**
+     *
+     * Filter the items that are send to the user (the client side)
+     *
+     * @param itemsUid HashMaps with the item (Key) and the UID (value) of the item
+     * @param groupsItems Hahsmap with the item (Key) and the groups (value) to wich it belongs
+     * @param principal The {@link Principal} that request his items
+     * @return authorized items (In a HashSet)
      */
+    /*private Collection<Item> filterItemsWithRoles(HashMap<Item, String> itemsUid, HashMap<Item,List<String>> groupsItems, Principal principal) {
+        User user = userRegistry.get(principal.getName());
+        ManagedUser managedUser = (ManagedUser) user;
+        Set<String> roles = managedUser.getRoles();
+        HashMap<String,Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControle();
+
+
+        Collection<Item> returnedItems = new HashSet<>();
+        for(Map.Entry<Item, String> entryUid : itemsUid.entrySet()){
+            for(Map.Entry<Item, List<String>> entryGroup : groupsItems.entrySet()){
+                if(entryGroup.getValue().contains(entryUid.getValue())){
+                    returnedItems.add(entryUid.getKey());
+                }
+            }
+        }
+
+        return null;
+    }*/
+
 
     @Override
     public Collection<Item> getItemsOfType(String type) {
         Collection<Item> matchedItems = new ArrayList<>();
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             if (item.getType().equals(type)) {
                 matchedItems.add(item);
             }
@@ -160,14 +195,11 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         String regex = pattern.replace("?", ".?").replace("*", ".*?");
         Collection<Item> matchedItems = new ArrayList<>();
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             if (item.getName().matches(regex)) {
                 matchedItems.add(item);
             }
-            System.out.println("PRINT ITEM getItems() 2!!!!");
-            System.out.println(item);
         }
-        System.out.println(matchedItems);
         return matchedItems;
     }
 
@@ -235,7 +267,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     }
 
     private void addMembersToGroupItem(GroupItem groupItem) {
-        for (Item i : getItems()) {
+        for (Item i : getItems((Principal) null)) {
             if (i.getGroupNames().contains(groupItem.getName())) {
                 groupItem.addMember(i);
             }
@@ -297,7 +329,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setEventPublisher(EventPublisher eventPublisher) {
         super.setEventPublisher(eventPublisher);
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setEventPublisher(eventPublisher);
         }
     }
@@ -305,7 +337,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Override
     protected void unsetEventPublisher(EventPublisher eventPublisher) {
         super.unsetEventPublisher(eventPublisher);
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setEventPublisher(null);
         }
     }
@@ -324,14 +356,14 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setUnitProvider(UnitProvider unitProvider) {
         this.unitProvider = unitProvider;
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setUnitProvider(unitProvider);
         }
     }
 
     protected void unsetUnitProvider(UnitProvider unitProvider) {
         this.unitProvider = null;
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setUnitProvider(null);
         }
     }
@@ -339,14 +371,14 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setItemStateConverter(ItemStateConverter itemStateConverter) {
         this.itemStateConverter = itemStateConverter;
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setItemStateConverter(itemStateConverter);
         }
     }
 
     protected void unsetItemStateConverter(ItemStateConverter itemStateConverter) {
         this.itemStateConverter = null;
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setItemStateConverter(null);
         }
     }
@@ -354,7 +386,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Override
     public Collection<Item> getItemsByTag(String... tags) {
         List<Item> filteredItems = new ArrayList<>();
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             if (itemHasTags(item, tags)) {
                 filteredItems.add(item);
 
@@ -498,7 +530,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     protected void setStateDescriptionService(StateDescriptionService stateDescriptionService) {
         this.stateDescriptionService = stateDescriptionService;
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setStateDescriptionService(stateDescriptionService);
         }
     }
@@ -506,7 +538,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     protected void unsetStateDescriptionService(StateDescriptionService stateDescriptionService) {
         this.stateDescriptionService = null;
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setStateDescriptionService(null);
         }
     }
@@ -515,7 +547,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     public void setCommandDescriptionService(CommandDescriptionService commandDescriptionService) {
         this.commandDescriptionService = commandDescriptionService;
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setCommandDescriptionService(commandDescriptionService);
         }
     }
@@ -523,7 +555,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     public void unsetCommandDescriptionService(CommandDescriptionService commandDescriptionService) {
         this.commandDescriptionService = null;
 
-        for (Item item : getItems()) {
+        for (Item item : getItems((Principal) null)) {
             ((GenericItem) item).setCommandDescriptionService(null);
         }
     }

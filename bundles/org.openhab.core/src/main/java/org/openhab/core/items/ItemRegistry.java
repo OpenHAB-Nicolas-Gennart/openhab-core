@@ -12,6 +12,7 @@
  */
 package org.openhab.core.items;
 
+import java.security.Principal;
 import java.util.Collection;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -56,7 +57,7 @@ public interface ItemRegistry extends Registry<Item, String> {
      *
      * @return a collection of all available items
      */
-    public Collection<Item> getItems();
+    public Collection<Item> getItems(Principal principal);
 
     /**
      * This method retrieves all items with the given type

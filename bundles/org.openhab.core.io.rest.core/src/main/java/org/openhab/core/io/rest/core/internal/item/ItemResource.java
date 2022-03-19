@@ -216,7 +216,6 @@ public class ItemResource implements RESTResource {
         final Locale locale = localeService.getLocale(language);
         final Set<String> namespaces = splitAndFilterNamespaces(namespaceSelector, locale);
         Principal principal;
-        System.out.println("DEBUG");
         try {
             principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
         } catch (IOException io) {
@@ -226,7 +225,7 @@ public class ItemResource implements RESTResource {
         System.out.println(principal.getName());
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
-        Stream<EnrichedItemDTO> itemStream = getItems(type, tags).stream() //
+        Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal).stream() //
                 .map(item -> EnrichedItemDTOMapper.map(item, recursive, null, uriBuilder, locale)) //
                 .peek(dto -> addMetadata(dto, namespaces, null)) //
                 .peek(dto -> dto.editable = isEditable(dto.name));
@@ -771,11 +770,11 @@ public class ItemResource implements RESTResource {
         return itemRegistry.get(itemname);
     }
 
-    private Collection<Item> getItems(@Nullable String type, @Nullable String tags) {
+    private Collection<Item> getItems(@Nullable String type, @Nullable String tags, @Nullable Principal principal) {
         Collection<Item> items;
         if (tags == null) {
             if (type == null) {
-                items = itemRegistry.getItems();
+                items = itemRegistry.getItems(principal);
             } else {
                 items = itemRegistry.getItemsOfType(type);
             }

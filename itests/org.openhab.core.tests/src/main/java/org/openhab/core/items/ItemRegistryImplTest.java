@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +39,7 @@ import org.openhab.core.events.EventPublisher;
 import org.openhab.core.i18n.UnitProvider;
 import org.openhab.core.internal.items.ItemBuilderFactoryImpl;
 import org.openhab.core.internal.items.ItemRegistryImpl;
+import org.openhab.core.auth.UserRegistry;
 import org.openhab.core.items.events.ItemAddedEvent;
 import org.openhab.core.items.events.ItemRemovedEvent;
 import org.openhab.core.items.events.ItemUpdatedEvent;
@@ -115,7 +117,7 @@ public class ItemRegistryImplTest extends JavaTest {
 
     @Test
     public void assertGetItemsReturnsItemFromRegisteredItemProvider() {
-        List<Item> items = new ArrayList<>(itemRegistry.getItems());
+        List<Item> items = new ArrayList<>(itemRegistry.getItems((Principal) null));
         assertThat(items.size(), is(5));
         assertThat(items.get(0).getName(), is(equalTo(ITEM_NAME)));
     }

@@ -12,10 +12,7 @@
  */
 package org.openhab.core.auth;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -35,6 +32,9 @@ public class ManagedUser implements User {
     private @Nullable PendingToken pendingToken = null;
     private List<UserSession> sessions = new ArrayList<>();
     private List<UserApiToken> apiTokens = new ArrayList<>();
+    private HashMap<String, Set<String>> roleBasedAccessControle = new HashMap<>();
+
+
 
     /**
      * Constructs a user with a password hash & salt provided by the caller.
@@ -173,8 +173,19 @@ public class ManagedUser implements User {
         this.apiTokens = apiTokens;
     }
 
+    /**
+     * Get the HashMap to know which role has access to which device's.
+     *
+     * @return a HashMap where the key is the role and the value is a set of authorized items.
+     */
+    public HashMap<String, Set<String>> getRoleBasedAccessControle() {
+        return roleBasedAccessControle;
+    }
+
     @Override
     public String toString() {
         return name + " (" + String.join(", ", roles.stream().toArray(String[]::new)) + ")";
     }
+
+
 }

@@ -12,11 +12,11 @@
  */
 package org.openhab.core.io.console.internal.extension;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Scanner;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,11 +28,13 @@ import org.openhab.core.auth.UserRegistry;
 import org.openhab.core.io.console.Console;
 import org.openhab.core.io.console.extensions.AbstractConsoleCommandExtension;
 import org.openhab.core.io.console.extensions.ConsoleCommandExtension;
+import org.openhab.core.items.Item;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Console command extension to manage users, sessions and API tokens
@@ -51,6 +53,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_LISTROLES = "listRoles";
     private static final String SUBCMD_ADDROLE = "addRole";
     private static final String SUBCMD_REMOVEROLE = "removeRole";
+    private static final String SUBCMD_LISTAC = "listAC";
+    private static final String SUBCMD_AC_ADDITEMTOROLE = "addItemToRole";
+    private static final String SUBCMD_AC_RMVITEMTOROLE = "rmvItemToRole";
     private static final String SUBCMD_CHANGEPASSWORD = "changePassword";
     private static final String SUBCMD_LISTAPITOKENS = "listApiTokens";
     private static final String SUBCMD_ADDAPITOKEN = "addApiToken";
@@ -58,6 +63,10 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_CLEARSESSIONS = "clearSessions";
 
     private Scanner scanner = new Scanner(System.in);
+    private Map<String, List<String>> accessControl = new HashMap<>();
+    Set<Item> itemsIds = new HashSet<>();
+
+    private LocalDateTime firstTime = null;
 
     private final Logger logger = LoggerFactory.getLogger(UserConsoleCommandExtension.class);
 
@@ -80,6 +89,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         "Change the specific role of a user with a new one"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "Add the specified role to the specified user"),
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "Remove the specified role of the user"),
+                buildCommandUsage(SUBCMD_LISTAC , "List of users with his roles and the items allowed for each of these roles, the role-based access control model will be display"),
+                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE+ "<role> <itemName>", "Add the specified item to the role"),
+                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE+ "<role> <itemName>", "Remove the specified item to the role"),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
                 buildCommandUsage(SUBCMD_ADDAPITOKEN + " <userId> <tokenName> <scope>",
@@ -361,6 +373,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
         String[] logArgs = null;
         int in = 0;
 
+        if(!askTheCredential()){
+            return true;
+        }
         // if there are no user with the administrator role return true.
         if (!userRegistry.containRole("administrator")) {
             return true;
@@ -393,6 +408,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             console.println("the user " + logArgs[1] + " does not exist");
                         } else {
                             if (userRegistry.checkAdministratorCredential(adminUser, logArgs[2])) {
+                                this.firstTime = LocalDateTime.now();
                                 return true;
                             } else {
                                 console.println("The password of the user " + logArgs[1]
@@ -436,6 +452,24 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                 console.println(user.toString());
             }
         }
+    }
+
+    /**
+     * We ask for an administrator credential every 15 minutes.
+     *
+     * @return true if we have to ask the credential and false otherwise.
+     */
+    private boolean askTheCredential(){
+        if(this.firstTime == null){
+            return true;
+        }
+        LocalDateTime secondTime = LocalDateTime.now();
+        long intervale = this.firstTime.until(secondTime, ChronoUnit.MINUTES);
+
+        if(intervale < 15){
+            return false;
+        }
+        return true;
     }
 
     private String findUsage(String cmd) {
