@@ -201,7 +201,6 @@ public class ItemResource implements RESTResource {
     }
 
     @GET
-    @RolesAllowed({ Role.USER, Role.ADMIN })
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(operationId = "getItems", summary = "Get all available items.", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EnrichedItemDTO.class)))) })
@@ -221,11 +220,12 @@ public class ItemResource implements RESTResource {
         } catch (IOException io) {
             principal = verifyToken.anonymousPrincipal;
         }
-        System.out.println("THE NAME OF THE PRINCIPAL, IT WORKS!!");
+
         System.out.println(principal.getName());
+
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
-        Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal).stream() //
+        Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal.getName()).stream() //
                 .map(item -> EnrichedItemDTOMapper.map(item, recursive, null, uriBuilder, locale)) //
                 .peek(dto -> addMetadata(dto, namespaces, null)) //
                 .peek(dto -> dto.editable = isEditable(dto.name));
@@ -770,11 +770,15 @@ public class ItemResource implements RESTResource {
         return itemRegistry.get(itemname);
     }
 
-    private Collection<Item> getItems(@Nullable String type, @Nullable String tags, @Nullable Principal principal) {
+    private Collection<Item> getItems(@Nullable String type, @Nullable String tags, @Nullable String principal) {
         Collection<Item> items;
         if (tags == null) {
             if (type == null) {
-                items = itemRegistry.getItems(principal);
+                if (principal != null) {
+                    items = itemRegistry.getAllItemsWithRoles(principal);
+                } else {
+                    items = itemRegistry.getItems();
+                }
             } else {
                 items = itemRegistry.getItemsOfType(type);
             }

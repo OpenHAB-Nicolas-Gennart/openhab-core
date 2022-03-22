@@ -12,8 +12,8 @@
  */
 package org.openhab.core.items;
 
-import java.security.Principal;
 import java.util.Collection;
+import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -57,7 +57,15 @@ public interface ItemRegistry extends Registry<Item, String> {
      *
      * @return a collection of all available items
      */
-    public Collection<Item> getItems(Principal principal);
+    public Collection<Item> getItems();
+
+    /**
+     * This method retrieves all items that belong to the roles of the principal
+     *
+     * @param principal The information about the user
+     * @return a collection for the authorised items
+     */
+    public Collection<Item> getAllItemsWithRoles(String principal);
 
     /**
      * This method retrieves all items with the given type
@@ -73,6 +81,13 @@ public interface ItemRegistry extends Registry<Item, String> {
      * @return a collection of all items matching the search pattern
      */
     public Collection<Item> getItems(String pattern);
+
+    /**
+     * Get the name of each item
+     *
+     * @return a set that contains the names of all items.
+     */
+    public Set<String> getAllItemNames();
 
     /**
      * Returns list of items which contains all of the given tags.

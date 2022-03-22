@@ -33,10 +33,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openhab.core.common.registry.RegistryChangeListener;
 import org.openhab.core.events.EventPublisher;
 import org.openhab.core.i18n.UnitProvider;
+import org.openhab.core.internal.auth.UserRegistryImpl;
 import org.openhab.core.internal.items.ItemBuilderFactoryImpl;
 import org.openhab.core.internal.items.ItemRegistryImpl;
 import org.openhab.core.auth.UserRegistry;
@@ -103,7 +105,7 @@ public class ItemRegistryImplTest extends JavaTest {
         itemProvider.add(cameraItem4);
 
         // setup ItemRegistryImpl with necessary dependencies:
-        itemRegistry = new ItemRegistryImpl(mock(MetadataRegistry.class)) {
+        itemRegistry = new ItemRegistryImpl(mock(MetadataRegistry.class), mock(UserRegistryImpl.class)) {
             {
                 addProvider(itemProvider);
                 setManagedProvider(itemProvider);
@@ -117,7 +119,7 @@ public class ItemRegistryImplTest extends JavaTest {
 
     @Test
     public void assertGetItemsReturnsItemFromRegisteredItemProvider() {
-        List<Item> items = new ArrayList<>(itemRegistry.getItems((Principal) null));
+        List<Item> items = new ArrayList<>(itemRegistry.getItems(""));
         assertThat(items.size(), is(5));
         assertThat(items.get(0).getName(), is(equalTo(ITEM_NAME)));
     }

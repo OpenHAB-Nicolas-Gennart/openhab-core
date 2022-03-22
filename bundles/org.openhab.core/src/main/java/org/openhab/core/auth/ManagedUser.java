@@ -32,9 +32,7 @@ public class ManagedUser implements User {
     private @Nullable PendingToken pendingToken = null;
     private List<UserSession> sessions = new ArrayList<>();
     private List<UserApiToken> apiTokens = new ArrayList<>();
-    private HashMap<String, Set<String>> roleBasedAccessControle = new HashMap<>();
-
-
+    private HashMap<String, Set<String>> roleBasedAccessControl = new HashMap<>();
 
     /**
      * Constructs a user with a password hash & salt provided by the caller.
@@ -178,14 +176,24 @@ public class ManagedUser implements User {
      *
      * @return a HashMap where the key is the role and the value is a set of authorized items.
      */
-    public HashMap<String, Set<String>> getRoleBasedAccessControle() {
-        return roleBasedAccessControle;
+    public HashMap<String, Set<String>> getRoleBasedAccessControl() {
+        return roleBasedAccessControl;
+    }
+
+    public void setRoleBasedAccessControl(HashMap<String, Set<String>> roleBasedAccessControl) {
+        this.roleBasedAccessControl = roleBasedAccessControl;
+    }
+
+    public Set<String> getItems(Set<String> roles) {
+        Set<String> items = new HashSet<>();
+        for (Map.Entry<String, Set<String>> entries : this.roleBasedAccessControl.entrySet()) {
+            items.addAll(entries.getValue());
+        }
+        return items;
     }
 
     @Override
     public String toString() {
         return name + " (" + String.join(", ", roles.stream().toArray(String[]::new)) + ")";
     }
-
-
 }

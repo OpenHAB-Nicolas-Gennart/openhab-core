@@ -15,16 +15,7 @@ package org.openhab.core.ui.internal.items;
 import java.time.DateTimeException;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -890,6 +881,16 @@ public class ItemUIRegistryImpl implements ItemUIRegistry {
     @Override
     public Collection<Item> getItems() {
         return itemRegistry.getItems();
+    }
+
+    @Override
+    public Collection<Item> getAllItemsWithRoles(String principal) {
+        return itemRegistry.getAllItemsWithRoles(principal);
+    }
+
+    @Override
+    public Set<String> getAllItemNames() {
+        return itemRegistry.getAllItemNames();
     }
 
     @Override

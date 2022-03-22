@@ -14,11 +14,10 @@ package org.openhab.core.io.console.internal.extension;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.ManagedUser;
@@ -29,12 +28,12 @@ import org.openhab.core.io.console.Console;
 import org.openhab.core.io.console.extensions.AbstractConsoleCommandExtension;
 import org.openhab.core.io.console.extensions.ConsoleCommandExtension;
 import org.openhab.core.items.Item;
+import org.openhab.core.items.ItemRegistry;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Console command extension to manage users, sessions and API tokens
@@ -62,20 +61,21 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_RMAPITOKEN = "rmApiToken";
     private static final String SUBCMD_CLEARSESSIONS = "clearSessions";
 
-    private Scanner scanner = new Scanner(System.in);
-    private Map<String, List<String>> accessControl = new HashMap<>();
-    Set<Item> itemsIds = new HashSet<>();
+    private final Scanner scanner = new Scanner(System.in);
 
-    private LocalDateTime firstTime = null;
+    private LocalDateTime firstTime = LocalDateTime.of(0, 0, 0, 0, 0);
 
     private final Logger logger = LoggerFactory.getLogger(UserConsoleCommandExtension.class);
 
     private final UserRegistry userRegistry;
+    private final ItemRegistry itemRegistry;
 
     @Activate
-    public UserConsoleCommandExtension(final @Reference UserRegistry userRegistry) {
+    public UserConsoleCommandExtension(final @Reference UserRegistry userRegistry,
+            final @Reference ItemRegistry itemRegistry) {
         super("users", "Access the user registry.");
         this.userRegistry = userRegistry;
+        this.itemRegistry = itemRegistry;
     }
 
     @Override
@@ -84,14 +84,17 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                 buildCommandUsage(SUBCMD_ADD + " <userId> <password> <role>",
                         "adds a new user with the specified role"),
                 buildCommandUsage(SUBCMD_REMOVE + " <userId>", "removes the given user"),
-                buildCommandUsage(SUBCMD_LISTROLES + " <userId>", "list the roles of the userID"),
+                buildCommandUsage(SUBCMD_LISTROLES + " <userId>", "lists the roles of the userID"),
                 buildCommandUsage(SUBCMD_CHANGEROLE + " <userId> <oldRole> <newRole>",
-                        "Change the specific role of a user with a new one"),
-                buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "Add the specified role to the specified user"),
-                buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "Remove the specified role of the user"),
-                buildCommandUsage(SUBCMD_LISTAC , "List of users with his roles and the items allowed for each of these roles, the role-based access control model will be display"),
-                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE+ "<role> <itemName>", "Add the specified item to the role"),
-                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE+ "<role> <itemName>", "Remove the specified item to the role"),
+                        "changes the specific role of a user with a new one"),
+                buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "adds the specified role to the specified user"),
+                buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "removes the specified role of the user"),
+                buildCommandUsage(SUBCMD_LISTAC,
+                        "lists of users with his roles and the items allowed for each of these roles, the role-based access control model will be display"),
+                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE + " <role> <itemName>",
+                        "adds the specified item to the role"),
+                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE + " <role> <itemName>",
+                        "removes the specified item to the role"),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
                 buildCommandUsage(SUBCMD_ADDAPITOKEN + " <userId> <tokenName> <scope>",
@@ -151,25 +154,25 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         Collection<User> usersRegistry = userRegistry.getAll();
                         for (User user : usersRegistry) {
                             Set<String> roles = user.getRoles();
-                            String out = "";
+                            StringBuilder out;
                             if (roles.size() == 1) {
-                                out = "The username " + user.getName() + " has the role: ";
+                                out = new StringBuilder("The username " + user.getName() + " has the role: ");
                                 for (String role : roles) {
-                                    out = out + role;
+                                    out.append(role);
                                 }
                             } else {
-                                out = "The username " + user.getName() + " has these roles: (";
+                                out = new StringBuilder("The username " + user.getName() + " has these roles: (");
                                 int i = 0;
                                 for (String role : roles) {
                                     if (i == roles.size() - 1) {
-                                        out = out + role + ")";
+                                        out.append(role).append(")");
                                     } else {
-                                        out = out + role + ", ";
+                                        out.append(role).append(", ");
                                     }
                                     i++;
                                 }
                             }
-                            console.println(out);
+                            console.println(out.toString());
                         }
                     } else {
                         console.printUsage(findUsage(SUBCMD_LISTROLES));
@@ -179,7 +182,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     if (args.length == 4) {
                         User existingUser = userRegistry.get(args[1]);
                         if (existingUser == null) {
-                            console.println("The user doesn't exist here you can find the available users:");
+                            console.println("The user doesn't exist, here you can find the available users:");
                             userRegistry.getAll().forEach(user -> console.println(user.toString()));
                             return;
                         } else {
@@ -187,6 +190,8 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 if (args[2].equals("administrator") || args[3].equals("administrator")) {
                                     if (checkAdministratorCredential(console)) {
                                         userRegistry.changeRole(existingUser, args[2], args[3]);
+                                        userRegistry.addItemsToRole(existingUser, "administrator",
+                                                itemRegistry.getAllItemNames());
                                         console.println("The role (" + args[2] + ") of the user " + args[1]
                                                 + " has been changed to the role (" + args[3] + ")");
                                     } else {
@@ -212,12 +217,16 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     if (args.length == 3) {
                         User existingUser = userRegistry.get(args[1]);
                         if (existingUser == null) {
-                            console.println("The user doesn't exist here you can find the available users:");
+                            console.println("The user doesn't exist, here you can find the available users:");
                             userRegistry.getAll().forEach(user -> console.println(user.toString()));
                             return;
                         } else {
                             if (checkAdministratorCredential(console)) {
                                 if (userRegistry.addRole(existingUser, args[2])) {
+                                    if (args[2].equals("administrator")) {
+                                        userRegistry.addItemsToRole(existingUser, "administrator",
+                                                itemRegistry.getAllItemNames());
+                                    }
                                     console.println(
                                             "The role " + args[2] + " of the user " + args[1] + " has been added.");
                                 } else {
@@ -236,7 +245,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     if (args.length == 3) {
                         User existingUser = userRegistry.get(args[1]);
                         if (existingUser == null) {
-                            console.println("The user doesn't exist here you can find the available users:");
+                            console.println("The user doesn't exist, here you can find the available users:");
                             userRegistry.getAll().forEach(user -> console.println(user.toString()));
                             return;
                         } else {
@@ -259,6 +268,90 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         }
                     } else {
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
+                    }
+                    break;
+                case SUBCMD_LISTAC:
+                    if (args.length == 1) {
+                        Collection<User> users = userRegistry.getAll();
+                        Collection<ManagedUser> managedUsers = users.stream().map(user -> (ManagedUser) user)
+                                .collect(Collectors.toList());
+                        System.out.println("ROLE-BASED ACCESS CONTROL MODEL");
+                        for (ManagedUser managedUser : managedUsers) {
+                            System.out.println(
+                                    "The USER " + managedUser.getName() + " has access to the following items:");
+                            for (Map.Entry<String, Set<String>> roleBasedAccessControl : managedUser
+                                    .getRoleBasedAccessControl().entrySet()) {
+                                printRoleWithItems(roleBasedAccessControl.getKey(), roleBasedAccessControl.getValue());
+                            }
+                        }
+
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_LISTAC));
+                    }
+                    break;
+                case SUBCMD_AC_ADDITEMTOROLE:
+                    if (args.length == 4) {
+                        User existingUser = userRegistry.get(args[1]);
+                        if (existingUser == null) {
+                            console.println("The user doesn't exist, here you can find the available users:");
+                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
+                            return;
+                        } else {
+                            try {
+                                if (checkAdministratorCredential(console)) {
+                                    Set<String> items = getAuthorizedItems(args[3]);
+                                    userRegistry.addItemsToRole(existingUser, args[2], items);
+                                    System.out.println(
+                                            "He you can see the role(s) and the actual authorized item(s) for the specific user"
+                                                    + args[2] + ": ");
+                                    ManagedUser managedUser = (ManagedUser) existingUser;
+                                    for (Map.Entry<String, Set<String>> entries : managedUser
+                                            .getRoleBasedAccessControl().entrySet()) {
+                                        printRoleWithItems(entries.getKey(), entries.getValue());
+                                    }
+                                } else {
+                                    console.println("You did not put a correct administrator credential.");
+                                }
+                            } catch (IllegalArgumentException ie) {
+                                logger.warn("IllegalArgumentException: ", ie);
+                                console.println("Look at your logs with the command <log:tail>.");
+                            }
+                        }
+
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_AC_ADDITEMTOROLE));
+                    }
+                    break;
+                case SUBCMD_AC_RMVITEMTOROLE:
+                    if (args.length == 4) {
+                        User existingUser = userRegistry.get(args[1]);
+                        if (existingUser == null) {
+                            console.println("The user doesn't exist, here you can find the available users:");
+                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
+                            return;
+                        } else {
+                            try {
+                                if (checkAdministratorCredential(console)) {
+                                    Set<String> items = getAuthorizedItems(args[3]);
+                                    userRegistry.removeItemsFromRole(existingUser, args[2], items);
+                                    System.out.println(
+                                            "He you can see the role(s) and the actual authorized item(s) for the specific user"
+                                                    + args[2] + ": ");
+                                    ManagedUser managedUser = (ManagedUser) existingUser;
+                                    for (Map.Entry<String, Set<String>> entries : managedUser
+                                            .getRoleBasedAccessControl().entrySet()) {
+                                        printRoleWithItems(entries.getKey(), entries.getValue());
+                                    }
+                                } else {
+                                    console.println("You did not put a correct administrator credential.");
+                                }
+                            } catch (IllegalArgumentException ie) {
+                                logger.warn("IllegalArgumentException: ", ie);
+                                console.println("Look at your logs with the command <log:tail>.");
+                            }
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_AC_RMVITEMTOROLE));
                     }
                     break;
                 case SUBCMD_CHANGEPASSWORD:
@@ -370,10 +463,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
      */
     private boolean checkAdministratorCredential(Console console) {
         String WHITELIST = "A-Za-z";
-        String[] logArgs = null;
-        int in = 0;
+        String[] logArgs;
 
-        if(!askTheCredential()){
+        if (!askTheCredential()) {
             return true;
         }
         // if there are no user with the administrator role return true.
@@ -387,7 +479,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
         printUsersWithAdministratorRole(console);
         console.println("Or run the command <exit> to quit");
 
-        String scanArgs = null;
+        String scanArgs;
         while (true) {
 
             scanArgs = this.scanner.nextLine();
@@ -459,17 +551,67 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
      *
      * @return true if we have to ask the credential and false otherwise.
      */
-    private boolean askTheCredential(){
-        if(this.firstTime == null){
+    private boolean askTheCredential() {
+        if (this.firstTime.equals(LocalDateTime.of(0, 0, 0, 0, 0))) {
             return true;
         }
         LocalDateTime secondTime = LocalDateTime.now();
-        long intervale = this.firstTime.until(secondTime, ChronoUnit.MINUTES);
+        long interval = this.firstTime.until(secondTime, ChronoUnit.MINUTES);
 
-        if(intervale < 15){
-            return false;
+        return interval >= 15;
+    }
+
+    /**
+     * Add the itemName and all his children itemName from the semantic model of OpenHAB .
+     *
+     * @param itemName the itemName.
+     * @return a set of items name
+     */
+    private Set<String> getAuthorizedItems(String itemName) {
+
+        if (!itemRegistry.getAllItemNames().contains(itemName)) {
+            return new HashSet<>();
         }
-        return true;
+
+        Set<Item> items = (Set<Item>) itemRegistry.getAll();
+
+        LinkedList<String> toAdd = new LinkedList<>();
+        toAdd.add(itemName);
+
+        Set<String> returnedItems = new HashSet<>();
+        while (!toAdd.isEmpty()) {
+            String headItemName = toAdd.poll();
+            for (Item item : items) {
+                if (item.getGroupNames().contains(headItemName)) {
+                    returnedItems.add(item.getName());
+                    toAdd.add(item.getName());
+                }
+            }
+        }
+        return returnedItems;
+    }
+
+    /**
+     * Print the role and all the items to the console.
+     *
+     * @param role the specified role
+     * @param items the set of items
+     */
+    private void printRoleWithItems(String role, Set<String> items) {
+
+        StringBuilder itemsToString = new StringBuilder("(");
+        int i = 0;
+        for (String item : items) {
+            if (i == 0) {
+                itemsToString.append(item);
+                i = 1;
+            } else {
+                itemsToString.append(", ").append(item);
+            }
+        }
+        itemsToString.append(")");
+
+        System.out.println(role + ": " + itemsToString);
     }
 
     private String findUsage(String cmd) {
