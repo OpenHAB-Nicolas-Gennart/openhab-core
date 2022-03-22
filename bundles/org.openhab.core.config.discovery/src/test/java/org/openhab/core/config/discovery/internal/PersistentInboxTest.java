@@ -18,8 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -97,30 +98,33 @@ public class PersistentInboxTest {
                 .createThing(eq(THING_TYPE_UID), any(Configuration.class), eq(THING_OTHER_UID), any()))
                         .then(invocation -> ThingBuilder.create(THING_TYPE_UID, THING_OTHER_ID)
                                 .withConfiguration((Configuration) invocation.getArguments()[1]).build());
-
         inbox = new PersistentInbox(storageServiceMock, mock(DiscoveryServiceRegistry.class), thingRegistryMock,
                 thingProviderMock, thingTypeRegistryMock, configDescriptionRegistryMock);
         inbox.addThingHandlerFactory(thingHandlerFactoryMock);
     }
 
     @Test
-    public void testConfigUpdateNormalizationGuessType() {
-        Configuration config = new Configuration(Map.of("foo", 1));
+    public void testConfigUpdateNormalizationWithConfigDescription() throws URISyntaxException {
+        Map<String, Object> props = new HashMap<>();
+        props.put("foo", "1");
+        Configuration config = new Configuration(props);
         Thing thing = ThingBuilder.create(THING_TYPE_UID, THING_UID).withConfiguration(config).build();
-
+        configureConfigDescriptionRegistryMock("foo", Type.TEXT);
         when(thingRegistryMock.get(eq(THING_UID))).thenReturn(thing);
+        when(thingProviderMock.get(eq(THING_UID))).thenReturn(thing);
 
-        assertTrue(thing.getConfiguration().get("foo") instanceof BigDecimal);
+        assertTrue(thing.getConfiguration().get("foo") instanceof String);
 
         inbox.activate();
         inbox.add(DiscoveryResultBuilder.create(THING_UID).withProperty("foo", 3).build());
 
-        assertTrue(thing.getConfiguration().get("foo") instanceof BigDecimal);
-        assertEquals(new BigDecimal(3), thing.getConfiguration().get("foo"));
+        assertTrue(thing.getConfiguration().get("foo") instanceof String);
+        // thing updated if managed
+        assertEquals("3", thing.getConfiguration().get("foo"));
     }
 
     @Test
-    public void testConfigUpdateNormalizationWithConfigDescription() {
+    public void testConfigUpdateNormalizationWithConfigDescriptionUnanagedThing() {
         Configuration config = new Configuration(Map.of("foo", "1"));
         Thing thing = ThingBuilder.create(THING_TYPE_UID, THING_UID).withConfiguration(config).build();
         configureConfigDescriptionRegistryMock("foo", Type.TEXT);
@@ -132,7 +136,8 @@ public class PersistentInboxTest {
         inbox.add(DiscoveryResultBuilder.create(THING_UID).withProperty("foo", 3).build());
 
         assertTrue(thing.getConfiguration().get("foo") instanceof String);
-        assertEquals("3", thing.getConfiguration().get("foo"));
+        // thing not updated if unmanaged
+        assertEquals("1", thing.getConfiguration().get("foo"));
     }
 
     @Test

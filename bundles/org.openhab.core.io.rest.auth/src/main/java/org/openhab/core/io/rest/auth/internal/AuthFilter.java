@@ -23,10 +23,12 @@ import java.util.Map;
 import java.util.Random;
 
 import javax.annotation.Priority;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.PreMatching;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
@@ -97,7 +99,10 @@ public class AuthFilter implements ContainerRequestFilter {
     private final JwtHelper jwtHelper;
     private final UserRegistry userRegistry;
 
-    private RegistryChangeListener<User> userRegistryListener = new RegistryChangeListener<User>() {
+    @Context
+    private @NonNullByDefault({}) HttpServletRequest servletRequest;
+
+    private RegistryChangeListener<User> userRegistryListener = new RegistryChangeListener<>() {
 
         @Override
         public void added(User element) {
@@ -258,7 +263,7 @@ public class AuthFilter implements ContainerRequestFilter {
                     requestContext.setSecurityContext(new AnonymousUserSecurityContext());
                 }
             } catch (AuthenticationException e) {
-                logger.warn("Unauthorized API request: {}", e.getMessage());
+                logger.warn("Unauthorized API request from {}: {}", servletRequest.getRemoteAddr(), e.getMessage());
                 requestContext.abortWith(JSONResponse.createErrorResponse(Status.UNAUTHORIZED, "Invalid credentials"));
             }
         }

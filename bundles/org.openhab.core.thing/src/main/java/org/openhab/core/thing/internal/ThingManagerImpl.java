@@ -41,6 +41,7 @@ import org.openhab.core.common.ThreadPoolManager;
 import org.openhab.core.common.registry.Identifiable;
 import org.openhab.core.common.registry.ManagedProvider;
 import org.openhab.core.common.registry.Provider;
+import org.openhab.core.config.core.ConfigDescription;
 import org.openhab.core.config.core.ConfigDescriptionRegistry;
 import org.openhab.core.config.core.Configuration;
 import org.openhab.core.config.core.validation.ConfigDescriptionValidator;
@@ -104,8 +105,9 @@ import org.slf4j.LoggerFactory;
  * {@link ThingManagerImpl} tracks all things in the {@link ThingRegistry} and mediates the communication between the
  * {@link Thing} and the {@link ThingHandler} from the binding. Therefore it tracks {@link ThingHandlerFactory}s and
  * calls {@link ThingHandlerFactory#registerHandler(Thing)} for each thing, that was added to the {@link ThingRegistry}.
- * In addition the {@link ThingManagerImpl} acts as an {@link EventHandler} and subscribes to update and command events.
- * Finally the {@link ThingManagerImpl} implement the {@link ThingTypeMigrationService} to offer a way to change the
+ * In addition the {@link ThingManagerImpl} acts as an {@link org.openhab.core.internal.events.EventHandler}
+ * and subscribes to update and command events.
+ * Finally the {@link ThingManagerImpl} implements the {@link ThingTypeMigrationService} to offer a way to change the
  * thing type of a {@link Thing}.
  *
  * @author Dennis Nobel - Initial contribution
@@ -114,7 +116,7 @@ import org.slf4j.LoggerFactory;
  *         refactorings due to thing/bridge life cycle
  * @author Simon Kaufmann - Added remove handling, type conversion
  * @author Kai Kreuzer - Removed usage of itemRegistry and thingLinkRegistry, fixed vetoing mechanism
- * @author Andre Fuechsel - Added the {@link ThingTypeMigrationService} 
+ * @author Andre Fuechsel - Added the {@link ThingTypeMigrationService}
  * @author Thomas Höfer - Added localization of thing status info
  * @author Christoph Weitkamp - Moved OSGI ServiceTracker from BaseThingHandler to ThingHandlerCallback
  * @author Henning Sudbrock - Consider thing type properties when migrating to new thing type
@@ -192,6 +194,12 @@ public class ThingManagerImpl
 
             if (ThingStatus.REMOVING.equals(oldStatusInfo.getStatus())
                     && !ThingStatus.REMOVED.equals(statusInfo.getStatus())) {
+                // if we go to ONLINE and are still in REMOVING, notify handler about required removal
+                if (ThingStatus.ONLINE.equals(statusInfo.getStatus())) {
+                    logger.debug(
+                            "Handler is initialized now and we try to remove it, because it is in REMOVING state.");
+                    notifyThingHandlerAboutRemoval(thing);
+                }
                 // only allow REMOVING -> REMOVED transition, all others are ignored because they are illegal
                 logger.debug(
                         "Ignoring illegal status transition for thing {} from REMOVING to {}, only REMOVED would have been allowed.",
@@ -306,6 +314,30 @@ public class ThingManagerImpl
         }
 
         @Override
+        public @Nullable ConfigDescription getConfigDescription(ChannelTypeUID channelTypeUID) {
+            ChannelType channelType = channelTypeRegistry.getChannelType(channelTypeUID);
+            if (channelType != null) {
+                URI configDescriptionUri = channelType.getConfigDescriptionURI();
+                if (configDescriptionUri != null) {
+                    return configDescriptionRegistry.getConfigDescription(configDescriptionUri);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public @Nullable ConfigDescription getConfigDescription(ThingTypeUID thingTypeUID) {
+            ThingType thingType = thingTypeRegistry.getThingType(thingTypeUID);
+            if (thingType != null) {
+                URI configDescriptionUri = thingType.getConfigDescriptionURI();
+                if (configDescriptionUri != null) {
+                    return configDescriptionRegistry.getConfigDescription(configDescriptionUri);
+                }
+            }
+            return null;
+        }
+
+        @Override
         public void configurationUpdated(Thing thing) {
             if (!ThingHandlerHelper.isHandlerInitialized(thing)) {
                 initializeHandler(thing);
@@ -401,9 +433,10 @@ public class ThingManagerImpl
         this.thingStatusInfoI18nLocalizationService = thingStatusInfoI18nLocalizationService;
         this.thingTypeRegistry = thingTypeRegistry;
 
+        storage = storageService.getStorage(THING_STATUS_STORAGE_NAME, this.getClass().getClassLoader());
+
         readyService.registerTracker(this, new ReadyMarkerFilter().withType(XML_THING_TYPE));
         this.thingRegistry.addThingTracker(this);
-        storage = storageService.getStorage(THING_STATUS_STORAGE_NAME, this.getClass().getClassLoader());
         initializeStartLevelSetter();
     }
 
@@ -584,9 +617,10 @@ public class ThingManagerImpl
                         }
                         thing.setHandler(thingHandler);
 
-                        if (isInitializable(thing, getThingType(thing))) {
+                        try {
+                            validate(thing, getThingType(thing));
                             safeCaller.create(thingHandler, ThingHandler.class).build().thingUpdated(thing);
-                        } else {
+                        } catch (ConfigValidationException e) {
                             final ThingHandlerFactory thingHandlerFactory = findThingHandlerFactory(
                                     thing.getThingTypeUID());
                             if (thingHandlerFactory != null) {
@@ -597,7 +631,7 @@ public class ThingManagerImpl
                                 setThingStatus(thing,
                                         buildStatusInfo(ThingStatus.UNINITIALIZED,
                                                 ThingStatusDetail.HANDLER_CONFIGURATION_PENDING,
-                                                "@text/missing-or-invalid-configuration"));
+                                                e.getValidationMessages(null).toString()));
                             }
                         }
                     } else {
@@ -768,35 +802,33 @@ public class ThingManagerImpl
                         configDescriptionRegistry);
             }
 
-            if (isInitializable(thing, thingType)) {
-                setThingStatus(thing, buildStatusInfo(ThingStatus.INITIALIZING, ThingStatusDetail.NONE));
+            try {
+                validate(thing, thingType);
+                if (ThingStatus.REMOVING.equals(thing.getStatus())) {
+                    // preserve REMOVING state so the callback can later decide to remove the thing after it has been
+                    // initialized
+                    logger.debug("Not setting status to INITIALIZING because thing '{}' is in REMOVING status.",
+                            thing.getUID());
+                } else {
+                    setThingStatus(thing, buildStatusInfo(ThingStatus.INITIALIZING, ThingStatusDetail.NONE));
+                }
                 doInitializeHandler(handler);
-            } else {
-                logger.debug(
-                        "Thing '{}' not initializable, check if required configuration parameters are present and set values are valid.",
-                        thing.getUID());
+            } catch (ConfigValidationException e) {
                 setThingStatus(thing, buildStatusInfo(ThingStatus.UNINITIALIZED,
-                        ThingStatusDetail.HANDLER_CONFIGURATION_PENDING, "@text/missing-or-invalid-configuration"));
+                        ThingStatusDetail.HANDLER_CONFIGURATION_PENDING, e.getValidationMessages(null).toString()));
             }
         } finally {
             lock.unlock();
         }
     }
 
-    private boolean isInitializable(Thing thing, @Nullable ThingType thingType) {
-        if (!isComplete(thingType, thing.getUID(), ThingType::getConfigDescriptionURI, thing.getConfiguration())) {
-            return false;
-        }
+    private void validate(Thing thing, @Nullable ThingType thingType) throws ConfigValidationException {
+        validate(thingType, thing.getUID(), ThingType::getConfigDescriptionURI, thing.getConfiguration());
 
         for (Channel channel : thing.getChannels()) {
             ChannelType channelType = channelTypeRegistry.getChannelType(channel.getChannelTypeUID());
-            if (!isComplete(channelType, channel.getUID(), ChannelType::getConfigDescriptionURI,
-                    channel.getConfiguration())) {
-                return false;
-            }
+            validate(channelType, channel.getUID(), ChannelType::getConfigDescriptionURI, channel.getConfiguration());
         }
-
-        return true;
     }
 
     /**
@@ -807,31 +839,24 @@ public class ThingManagerImpl
      * @param configDescriptionURIFunction a function to determine the the config description UID for the given
      *            prototype
      * @param configuration the current configuration
-     * @return true if all required configuration parameters are given, false otherwise
+     * @throws ConfigValidationException if validation failed
      */
-    private <T extends Identifiable<?>> boolean isComplete(@Nullable T prototype, UID targetUID,
-            Function<T, @Nullable URI> configDescriptionURIFunction, Configuration configuration) {
+    private <T extends Identifiable<?>> void validate(@Nullable T prototype, UID targetUID,
+            Function<T, @Nullable URI> configDescriptionURIFunction, Configuration configuration)
+            throws ConfigValidationException {
         if (prototype == null) {
             logger.debug("Prototype for '{}' is not known, assuming it is initializable", targetUID);
-            return true;
+            return;
         }
 
         URI configDescriptionURI = configDescriptionURIFunction.apply(prototype);
         if (configDescriptionURI == null) {
             logger.debug("Config description URI for '{}' not found, assuming '{}' is initializable",
                     prototype.getUID(), targetUID);
-            return true;
+            return;
         }
 
-        try {
-            configDescriptionValidator.validate(configuration.getProperties(), configDescriptionURI);
-        } catch (ConfigValidationException e) {
-            logger.trace("Failed to validate config for '{}' with URI '{}': {}", targetUID, configDescriptionURI,
-                    e.getValidationMessages());
-            return false;
-        }
-
-        return true;
+        configDescriptionValidator.validate(configuration.getProperties(), configDescriptionURI);
     }
 
     private void doInitializeHandler(final ThingHandler thingHandler) {
@@ -1130,19 +1155,24 @@ public class ThingManagerImpl
 
     private void registerAndInitializeHandler(final Thing thing,
             final @Nullable ThingHandlerFactory thingHandlerFactory) {
-        if (thingHandlerFactory != null) {
-            final String identifier = getBundleIdentifier(thingHandlerFactory);
-            if (loadedXmlThingTypes.contains(identifier)) {
-                registerHandler(thing, thingHandlerFactory);
-                initializeHandler(thing);
-            } else {
-                logger.debug(
-                        "Not registering a handler at this point. The thing types of bundle '{}' are not fully loaded yet.",
-                        identifier);
-            }
+        if (isDisabledByStorage(thing.getUID())) {
+            logger.debug("Not registering a handler at this point. Thing is disabled.");
+            thing.setStatusInfo(new ThingStatusInfo(ThingStatus.UNINITIALIZED, ThingStatusDetail.DISABLED, null));
         } else {
-            logger.debug("Not registering a handler at this point. No handler factory for thing '{}' found.",
-                    thing.getUID());
+            if (thingHandlerFactory != null) {
+                final String identifier = getBundleIdentifier(thingHandlerFactory);
+                if (loadedXmlThingTypes.contains(identifier)) {
+                    registerHandler(thing, thingHandlerFactory);
+                    initializeHandler(thing);
+                } else {
+                    logger.debug(
+                            "Not registering a handler at this point. The thing types of bundle '{}' are not fully loaded yet.",
+                            identifier);
+                }
+            } else {
+                logger.debug("Not registering a handler at this point. No handler factory for thing '{}' found.",
+                        thing.getUID());
+            }
         }
     }
 

@@ -19,6 +19,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.config.core.ConfigDescription;
 import org.openhab.core.config.xml.util.ConverterAttributeMapValidator;
 import org.openhab.core.config.xml.util.NodeIterator;
@@ -28,6 +31,7 @@ import org.openhab.core.thing.type.ChannelKind;
 import org.openhab.core.thing.type.ChannelType;
 import org.openhab.core.thing.type.ChannelTypeBuilder;
 import org.openhab.core.thing.type.ChannelTypeUID;
+import org.openhab.core.thing.type.TriggerChannelTypeBuilder;
 import org.openhab.core.types.CommandDescription;
 import org.openhab.core.types.EventDescription;
 import org.openhab.core.types.StateDescription;
@@ -50,12 +54,12 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
  * @author Michael Grammling - Initial contribution
  * @author Ivan Iliev - Added support for system wide channel types
  */
+@NonNullByDefault
 public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<ChannelTypeXmlResult> {
 
     public ChannelTypeConverter() {
         super(ChannelTypeXmlResult.class, "channel-type");
-
-        super.attributeMapValidator = new ConverterAttributeMapValidator(
+        attributeMapValidator = new ConverterAttributeMapValidator(
                 new String[][] { { "id", "true" }, { "advanced", "false" }, { "system", "false" } });
     }
 
@@ -69,19 +73,19 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return defaultValue;
     }
 
-    private String readItemType(NodeIterator nodeIterator) throws ConversionException {
+    private @Nullable String readItemType(NodeIterator nodeIterator) throws ConversionException {
         return (String) nodeIterator.nextValue("item-type", false);
     }
 
-    private String readKind(NodeIterator nodeIterator) throws ConversionException {
+    private @Nullable String readKind(NodeIterator nodeIterator) throws ConversionException {
         return (String) nodeIterator.nextValue("kind", false);
     }
 
-    private String readCategory(NodeIterator nodeIterator) throws ConversionException {
+    private @Nullable String readCategory(NodeIterator nodeIterator) throws ConversionException {
         return (String) nodeIterator.nextValue("category", false);
     }
 
-    private AutoUpdatePolicy readAutoUpdatePolicy(NodeIterator nodeIterator) {
+    private @Nullable AutoUpdatePolicy readAutoUpdatePolicy(NodeIterator nodeIterator) {
         String string = (String) nodeIterator.nextValue("autoUpdatePolicy", false);
         if (string != null) {
             return AutoUpdatePolicy.valueOf(string.toUpperCase(Locale.ENGLISH));
@@ -89,10 +93,10 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return null;
     }
 
-    private Set<String> readTags(NodeIterator nodeIterator) throws ConversionException {
+    private @Nullable Set<String> readTags(NodeIterator nodeIterator) throws ConversionException {
         Set<String> tags = null;
 
-        List<?> tagsNode = nodeIterator.nextList("tags", false);
+        List<@NonNull ?> tagsNode = nodeIterator.nextList("tags", false);
 
         if (tagsNode != null) {
             tags = new HashSet<>(tagsNode.size());
@@ -115,7 +119,7 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return tags;
     }
 
-    private StateDescription readStateDescription(NodeIterator nodeIterator) {
+    private @Nullable StateDescription readStateDescription(NodeIterator nodeIterator) {
         Object nextNode = nodeIterator.next();
 
         if (nextNode != null) {
@@ -129,7 +133,7 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return null;
     }
 
-    private EventDescription readEventDescription(NodeIterator nodeIterator) {
+    private @Nullable EventDescription readEventDescription(NodeIterator nodeIterator) {
         Object nextNode = nodeIterator.next();
 
         if (nextNode != null) {
@@ -143,7 +147,7 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return null;
     }
 
-    private CommandDescription readCommandDescription(NodeIterator nodeIterator) throws ConversionException {
+    private @Nullable CommandDescription readCommandDescription(NodeIterator nodeIterator) throws ConversionException {
         Object nextNode = nodeIterator.next();
 
         if (nextNode != null) {
@@ -157,10 +161,10 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         return null;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    protected ChannelTypeXmlResult unmarshalType(HierarchicalStreamReader reader, UnmarshallingContext context,
-            Map<String, String> attributes, NodeIterator nodeIterator) throws ConversionException {
+    protected @Nullable ChannelTypeXmlResult unmarshalType(HierarchicalStreamReader reader,
+            UnmarshallingContext context, Map<String, String> attributes, NodeIterator nodeIterator)
+            throws ConversionException {
         boolean advanced = readBoolean(attributes, "advanced", false);
         boolean system = readBoolean(attributes, "system", false);
 
@@ -188,22 +192,30 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
 
         if (kind == null) {
             // Default for kind is 'state'
-            kind = "state";
+            kind = ChannelKind.STATE.name();
         }
 
         ChannelKind cKind = ChannelKind.parse(kind);
         URI configDescriptionURI = (URI) configDescriptionObjects[0];
         final ChannelTypeBuilder<?> builder;
         if (cKind == ChannelKind.STATE) {
+            itemType = requireNonEmpty(itemType, "ChannelType 'itemType' must not be null or empty.");
             builder = ChannelTypeBuilder.state(channelTypeUID, label, itemType).isAdvanced(advanced)
-                    .withCategory(category).withConfigDescriptionURI(configDescriptionURI)
+                    .withConfigDescriptionURI(configDescriptionURI)
                     .withStateDescriptionFragment(stateDescriptionFragment).withAutoUpdatePolicy(autoUpdatePolicy)
                     .withCommandDescription(commandDescription);
         } else if (cKind == ChannelKind.TRIGGER) {
-            builder = ChannelTypeBuilder.trigger(channelTypeUID, label).isAdvanced(advanced).withCategory(category)
-                    .withConfigDescriptionURI(configDescriptionURI).withEventDescription(eventDescription);
+            TriggerChannelTypeBuilder triggerChannelTypeBuilder = ChannelTypeBuilder.trigger(channelTypeUID, label)
+                    .isAdvanced(advanced).withConfigDescriptionURI(configDescriptionURI);
+            builder = triggerChannelTypeBuilder;
+            if (eventDescription != null) {
+                triggerChannelTypeBuilder.withEventDescription(eventDescription);
+            }
         } else {
             throw new IllegalArgumentException(String.format("Unknown channel kind: '%s'", cKind));
+        }
+        if (category != null) {
+            builder.withCategory(category);
         }
         if (description != null) {
             builder.withDescription(description);
@@ -213,9 +225,6 @@ public class ChannelTypeConverter extends AbstractDescriptionTypeConverter<Chann
         }
         ChannelType channelType = builder.build();
 
-        ChannelTypeXmlResult channelTypeXmlResult = new ChannelTypeXmlResult(channelType,
-                (ConfigDescription) configDescriptionObjects[1], system);
-
-        return channelTypeXmlResult;
+        return new ChannelTypeXmlResult(channelType, (ConfigDescription) configDescriptionObjects[1], system);
     }
 }
