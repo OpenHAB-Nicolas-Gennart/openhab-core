@@ -14,7 +14,6 @@ package org.openhab.core.io.rest.voice.internal;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.security.RolesAllowed;
@@ -226,7 +225,7 @@ public class VoiceResource implements RESTResource {
     @Operation(operationId = "startDialog", summary = "Start dialog processing for a given audio source.", responses = {
             @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "404", description = "One of the given ids is wrong."),
-            @ApiResponse(responseCode = "400", description = "Services are missing or dialog processing is already started for the audio source.") })
+            @ApiResponse(responseCode = "400", description = "Services are missing or language is not supported by services or dialog processing is already started for the audio source.") })
     public Response startDialog(
             @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
             @QueryParam("sourceId") @Parameter(description = "source ID") @Nullable String sourceId,
@@ -239,7 +238,7 @@ public class VoiceResource implements RESTResource {
             @QueryParam("listeningItem") @Parameter(description = "listening item") @Nullable String listeningItem) {
         AudioSource source = null;
         if (sourceId != null) {
-            source = getSource(sourceId);
+            source = audioManager.getSource(sourceId);
             if (source == null) {
                 return JSONResponse.createErrorResponse(Status.NOT_FOUND, "Audio source not found");
             }
@@ -300,7 +299,7 @@ public class VoiceResource implements RESTResource {
             @QueryParam("sourceId") @Parameter(description = "source ID") @Nullable String sourceId) {
         AudioSource source = null;
         if (sourceId != null) {
-            source = getSource(sourceId);
+            source = audioManager.getSource(sourceId);
             if (source == null) {
                 return JSONResponse.createErrorResponse(Status.NOT_FOUND, "Audio source not found");
             }
@@ -312,15 +311,5 @@ public class VoiceResource implements RESTResource {
         } catch (IllegalStateException e) {
             return JSONResponse.createErrorResponse(Status.BAD_REQUEST, e.getMessage());
         }
-    }
-
-    private @Nullable AudioSource getSource(String sourceId) {
-        Set<AudioSource> sources = audioManager.getAllSources();
-        for (AudioSource source : sources) {
-            if (source.getId().equals(sourceId)) {
-                return source;
-            }
-        }
-        return null;
     }
 }

@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
@@ -133,7 +134,7 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
 
     @BeforeEach
     @SuppressWarnings("null")
-    public void setUp() {
+    public void setUp() throws IOException {
         thing = ThingBuilder.create(THING_TYPE_UID, THING_UID)
                 .withChannels(ChannelBuilder.create(CHANNEL_UID, CoreItemFactory.SWITCH).withKind(ChannelKind.STATE)
                         .withType(CHANNEL_TYPE_UID).build())
@@ -143,6 +144,12 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
 
         configurationAdmin = getService(ConfigurationAdmin.class);
         assertNotNull(configurationAdmin);
+
+        LocaleProvider localeProvider = getService(LocaleProvider.class);
+        assertThat(localeProvider, is(notNullValue()));
+
+        new DefaultLocaleSetter(configurationAdmin).setDefaultLocale(Locale.ENGLISH);
+        waitForAssert(() -> assertThat(localeProvider.getLocale(), is(Locale.ENGLISH)));
 
         channelTypeProvider = mock(ChannelTypeProvider.class);
         when(channelTypeProvider.getChannelType(any(ChannelTypeUID.class), nullable(Locale.class)))
@@ -1020,6 +1027,9 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
         state.callback.statusUpdated(thing, onlineNone);
 
         assertThat(thing.getStatusInfo(), is(removingNone));
+
+        // handleRemoval is called when thing is fully initialized and shall be removed
+        verify(thingHandler).handleRemoval();
     }
 
     private void expectException(Runnable runnable, Class<? extends Exception> exceptionType) {
@@ -1061,6 +1071,30 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
         final ThingStatusInfo uninitializedHandlerMissing = ThingStatusInfoBuilder
                 .create(ThingStatus.UNINITIALIZED, ThingStatusDetail.HANDLER_MISSING_ERROR).build();
         waitForAssert(() -> assertThat(thing.getStatusInfo(), is(uninitializedHandlerMissing)));
+    }
+
+    @Test
+    public void thingManagerHandlesThingStatusUpdatesRemovingAndInitializingCorrectly() {
+        registerThingTypeProvider();
+
+        ThingHandler thingHandler = mock(ThingHandler.class);
+        when(thingHandler.getThing()).thenReturn(thing);
+
+        ThingHandlerFactory thingHandlerFactory = mock(ThingHandlerFactory.class);
+        when(thingHandlerFactory.supportsThingType(any(ThingTypeUID.class))).thenReturn(true);
+        when(thingHandlerFactory.registerHandler(any(Thing.class))).thenReturn(thingHandler);
+
+        registerService(thingHandlerFactory);
+
+        final ThingStatusInfo removingNone = ThingStatusInfoBuilder.create(ThingStatus.REMOVING, ThingStatusDetail.NONE)
+                .build();
+        thing.setStatusInfo(removingNone);
+
+        managedThingProvider.add(thing);
+
+        // verify thing handler initialize is called but thing state stays in REMOVING
+        verify(thingHandler).initialize();
+        assertThat(thing.getStatusInfo(), is(removingNone));
     }
 
     @Test
@@ -1536,8 +1570,9 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
         // ThingHandler.initialize() not called, thing status is UNINITIALIZED.HANDLER_CONFIGURATION_PENDING
         ThingStatusInfo uninitializedPending = ThingStatusInfoBuilder
                 .create(ThingStatus.UNINITIALIZED, ThingStatusDetail.HANDLER_CONFIGURATION_PENDING)
-                .withDescription("@text/missing-or-invalid-configuration").build();
+                .withDescription("{parameter=The parameter is required.}").build();
         verify(thingHandler, never()).initialize();
+
         assertThat(thing.getStatusInfo(), is(uninitializedPending));
 
         // set required configuration parameter
@@ -1779,9 +1814,9 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
         doAnswer(new Answer<Void>() {
             @Override
             public @Nullable Void answer(InvocationOnMock invocation) throws Throwable {
-                bridgeState.childHandlerInitializedCalled = true;
                 bridgeState.initializedHandler = (ThingHandler) invocation.getArgument(0);
                 bridgeState.initializedThing = (Thing) invocation.getArgument(1);
+                bridgeState.childHandlerInitializedCalled = true;
                 return null;
             }
         }).when(bridgeHandler).childHandlerInitialized(any(ThingHandler.class), any(Thing.class));
@@ -1789,9 +1824,9 @@ public class ThingManagerOSGiTest extends JavaOSGiTest {
         doAnswer(new Answer<Void>() {
             @Override
             public @Nullable Void answer(InvocationOnMock invocation) throws Throwable {
-                bridgeState.childHandlerDisposedCalled = true;
                 bridgeState.disposedHandler = (ThingHandler) invocation.getArgument(0);
                 bridgeState.disposedThing = (Thing) invocation.getArgument(1);
+                bridgeState.childHandlerDisposedCalled = true;
                 return null;
             }
         }).when(bridgeHandler).childHandlerDisposed(any(ThingHandler.class), any(Thing.class));

@@ -225,19 +225,19 @@ public class VoiceManagerImpl implements VoiceManager, ConfigOptionProvider {
                 throw new TTSException(
                         "Unable to find a voice for language " + localeProvider.getLocale().getLanguage());
             }
-            Set<AudioFormat> audioFormats = tts.getSupportedFormats();
+            Set<AudioFormat> ttsSupportedFormats = tts.getSupportedFormats();
             AudioSink sink = audioManager.getSink(sinkId);
             if (sink == null) {
                 throw new TTSException("Unable to find the audio sink " + sinkId);
             }
 
-            AudioFormat audioFormat = getBestMatch(audioFormats, sink.getSupportedFormats());
-            if (audioFormat == null) {
+            AudioFormat ttsAudioFormat = getBestMatch(ttsSupportedFormats, sink.getSupportedFormats());
+            if (ttsAudioFormat == null) {
                 throw new TTSException("No compatible audio format found for TTS '" + tts.getId() + "' and sink '"
                         + sink.getId() + "'");
             }
 
-            AudioStream audioStream = tts.synthesize(text, voice, audioFormat);
+            AudioStream audioStream = tts.synthesize(text, voice, ttsAudioFormat);
             if (!sink.getSupportedStreams().stream().anyMatch(clazz -> clazz.isInstance(audioStream))) {
                 throw new TTSException(
                         "Failed playing audio stream '" + audioStream + "' as audio sink doesn't support it");
@@ -500,8 +500,14 @@ public class VoiceManagerImpl implements VoiceManager, ConfigOptionProvider {
         String item = (listeningItem == null) ? this.listeningItem : listeningItem;
         Bundle b = bundle;
 
-        if (ksService != null && sttService != null && ttsService != null && interpreter != null && audioSource != null
-                && audioSink != null && b != null) {
+        if (ksService == null || sttService == null || ttsService == null || interpreter == null || audioSource == null
+                || audioSink == null || b == null) {
+            throw new IllegalStateException("Cannot start dialog as services are missing.");
+        } else if (!checkLocales(ksService.getSupportedLocales(), loc)
+                || !checkLocales(sttService.getSupportedLocales(), loc)
+                || !checkLocales(interpreter.getSupportedLocales(), loc)) {
+            throw new IllegalStateException("Cannot start dialog as provided locale is not supported by all services.");
+        } else {
             DialogProcessor processor = dialogProcessors.get(audioSource.getId());
             if (processor == null) {
                 logger.debug("Starting a new dialog for source {} ({})", audioSource.getLabel(null),
@@ -515,8 +521,6 @@ public class VoiceManagerImpl implements VoiceManager, ConfigOptionProvider {
                         String.format("Cannot start dialog as a dialog is already started for audio source '%s'.",
                                 audioSource.getLabel(null)));
             }
-        } else {
-            throw new IllegalStateException("Cannot start dialog as services are missing.");
         }
     }
 
@@ -543,6 +547,17 @@ public class VoiceManagerImpl implements VoiceManager, ConfigOptionProvider {
             processor.stop();
         });
         dialogProcessors.clear();
+    }
+
+    private boolean checkLocales(Set<Locale> supportedLocales, Locale locale) {
+        if (supportedLocales.isEmpty()) {
+            return true;
+        }
+        return supportedLocales.stream().anyMatch(sLocale -> {
+            var country = sLocale.getCountry();
+            return Objects.equals(sLocale.getLanguage(), locale.getLanguage())
+                    && (country == null || country.isBlank() || country.equals(locale.getCountry()));
+        });
     }
 
     @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC)

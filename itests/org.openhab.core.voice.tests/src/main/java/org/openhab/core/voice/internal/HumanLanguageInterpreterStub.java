@@ -15,6 +15,8 @@ package org.openhab.core.voice.internal;
 import java.util.Locale;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.voice.text.HumanLanguageInterpreter;
 import org.openhab.core.voice.text.InterpretationException;
 
@@ -27,7 +29,10 @@ import org.openhab.core.voice.text.InterpretationException;
  *
  * @author Velin Yordanov - migrated from groovy to java
  */
+@NonNullByDefault
 public class HumanLanguageInterpreterStub implements HumanLanguageInterpreter {
+
+    private static final Set<Locale> SUPPORTED_LOCALES = Set.of(Locale.ENGLISH);
 
     private static final String INTERPRETED_TEXT = "Interpreted text";
     private static final String EXCEPTION_MESSAGE = "interpretation exception";
@@ -45,7 +50,7 @@ public class HumanLanguageInterpreterStub implements HumanLanguageInterpreter {
     }
 
     @Override
-    public String getLabel(Locale locale) {
+    public String getLabel(@Nullable Locale locale) {
         return HLI_STUB_LABEL;
     }
 
@@ -61,21 +66,20 @@ public class HumanLanguageInterpreterStub implements HumanLanguageInterpreter {
     }
 
     @Override
-    public String getGrammar(Locale locale, String format) {
+    public @Nullable String getGrammar(Locale locale, String format) {
         // This method will not be used in the tests
         return null;
     }
 
     @Override
     public Set<Locale> getSupportedLocales() {
-        // This method will not be used in the tests
-        return null;
+        return SUPPORTED_LOCALES;
     }
 
     @Override
     public Set<String> getSupportedGrammarFormats() {
         // This method will not be used in the tests
-        return null;
+        return Set.of();
     }
 
     public void setExceptionExpected(boolean exceptionExpected) {

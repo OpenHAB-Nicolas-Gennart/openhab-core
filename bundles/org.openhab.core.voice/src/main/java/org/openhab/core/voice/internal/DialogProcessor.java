@@ -12,12 +12,9 @@
  */
 package org.openhab.core.voice.internal;
 
-import static org.openhab.core.voice.internal.VoiceManagerImpl.getBestMatch;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -87,7 +84,9 @@ public class DialogProcessor implements KSListener, STTListener {
     private final TranslationProvider i18nProvider;
     private final Bundle bundle;
 
-    private final @Nullable AudioFormat format;
+    private final @Nullable AudioFormat ksFormat;
+    private final @Nullable AudioFormat sttFormat;
+    private final @Nullable AudioFormat ttsFormat;
 
     /**
      * If the processor is currently processing a keyword event and thus should not spot further ones.
@@ -120,14 +119,15 @@ public class DialogProcessor implements KSListener, STTListener {
         this.eventPublisher = eventPublisher;
         this.i18nProvider = i18nProvider;
         this.bundle = bundle;
-        this.format = AudioFormat.getBestMatch(source.getSupportedFormats(), sink.getSupportedFormats());
+        this.ksFormat = VoiceManagerImpl.getBestMatch(source.getSupportedFormats(), ks.getSupportedFormats());
+        this.sttFormat = VoiceManagerImpl.getBestMatch(source.getSupportedFormats(), stt.getSupportedFormats());
+        this.ttsFormat = VoiceManagerImpl.getBestMatch(tts.getSupportedFormats(), sink.getSupportedFormats());
     }
 
     public void start() {
-        AudioFormat fmt = format;
+        AudioFormat fmt = ksFormat;
         if (fmt == null) {
-            logger.warn("No compatible audio format found between source '{}' and sink '{}'", source.getId(),
-                    sink.getId());
+            logger.warn("No compatible audio format found for ks '{}' and source '{}'", ks.getId(), source.getId());
             return;
         }
         abortKS();
@@ -213,7 +213,7 @@ public class DialogProcessor implements KSListener, STTListener {
                 abortSTT();
                 closeStreamSTT();
                 isSTTServerAborting = false;
-                AudioFormat fmt = format;
+                AudioFormat fmt = sttFormat;
                 if (fmt != null) {
                     try {
                         AudioStream stream = source.getInputStream(fmt);
@@ -231,6 +231,9 @@ public class DialogProcessor implements KSListener, STTListener {
                             say(text.replace("{0}", ""));
                         }
                     }
+                } else {
+                    logger.warn("No compatible audio format found for stt '{}' and source '{}'", stt.getId(),
+                            source.getId());
                 }
             } else if (ksEvent instanceof KSErrorEvent) {
                 KSErrorEvent kse = (KSErrorEvent) ksEvent;
@@ -244,21 +247,18 @@ public class DialogProcessor implements KSListener, STTListener {
     public synchronized void sttEventReceived(STTEvent sttEvent) {
         if (sttEvent instanceof SpeechRecognitionEvent) {
             if (!isSTTServerAborting) {
-                abortSTT();
                 SpeechRecognitionEvent sre = (SpeechRecognitionEvent) sttEvent;
                 String question = sre.getTranscript();
                 try {
                     toggleProcessing(false);
-                    String answer = hli.interpret(locale, question);
-                    if (answer != null) {
-                        say(answer);
-                    }
+                    say(hli.interpret(locale, question));
                 } catch (InterpretationException e) {
                     String msg = e.getMessage();
                     if (msg != null) {
                         say(msg);
                     }
                 }
+                abortSTT();
             }
         } else if (sttEvent instanceof RecognitionStartEvent) {
             toggleProcessing(true);
@@ -280,7 +280,11 @@ public class DialogProcessor implements KSListener, STTListener {
      *
      * @param text The text to say
      */
-    protected void say(String text) {
+    protected void say(@Nullable String text) {
+        if (text == null || text.isEmpty()) {
+            logger.debug("Empty value, nothing to say");
+            return;
+        }
         try {
             Voice voice = null;
             for (Voice currentVoice : tts.getAvailableVoices()) {
@@ -293,8 +297,7 @@ public class DialogProcessor implements KSListener, STTListener {
                 throw new TTSException("Unable to find a suitable voice");
             }
 
-            Set<AudioFormat> audioFormats = tts.getSupportedFormats();
-            AudioFormat audioFormat = getBestMatch(audioFormats, sink.getSupportedFormats());
+            AudioFormat audioFormat = ttsFormat;
             if (audioFormat == null) {
                 throw new TTSException("No compatible audio format found for TTS '" + tts.getId() + "' and sink '"
                         + sink.getId() + "'");

@@ -13,6 +13,7 @@
 package org.openhab.core.addon;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,10 +32,11 @@ public class Addon {
     private final String label;
     private final String version;
     private final @Nullable String maturity;
+    private boolean compatible;
     private final String contentType;
     private final @Nullable String link;
     private final String author;
-    private boolean verifiedAuthor;
+    private final boolean verifiedAuthor;
     private boolean installed;
     private final String type;
     private final @Nullable String description;
@@ -47,6 +49,7 @@ public class Addon {
     private final @Nullable String backgroundColor;
     private final @Nullable String imageLink;
     private final Map<String, Object> properties;
+    private final List<String> loggerPackages;
 
     /**
      * Creates a new Addon instance
@@ -56,6 +59,7 @@ public class Addon {
      * @param label the label of the add-on
      * @param version the version of the add-on
      * @param maturity the maturity level of this version
+     * @param compatible if this add-on is compatible with the current core version
      * @param contentType the content type of the add-on
      * @param link the link to find more information about the add-on (may be null)
      * @param author the author of the add-on
@@ -72,16 +76,19 @@ public class Addon {
      * @param backgroundColor for displaying the add-on (may be null)
      * @param imageLink the link to an image (png/svg) (may be null)
      * @param properties a {@link Map} containing addition information
+     * @param loggerPackages a {@link List} containing the package names belonging to this add-on
      */
-    private Addon(String id, String type, String label, String version, @Nullable String maturity, String contentType,
-            @Nullable String link, String author, boolean verifiedAuthor, boolean installed,
+    private Addon(String id, String type, String label, String version, @Nullable String maturity, boolean compatible,
+            String contentType, @Nullable String link, String author, boolean verifiedAuthor, boolean installed,
             @Nullable String description, @Nullable String detailedDescription, String configDescriptionURI,
             String keywords, String countries, @Nullable String license, String connection,
-            @Nullable String backgroundColor, @Nullable String imageLink, @Nullable Map<String, Object> properties) {
+            @Nullable String backgroundColor, @Nullable String imageLink, @Nullable Map<String, Object> properties,
+            List<String> loggerPackages) {
         this.id = id;
         this.label = label;
         this.version = version;
         this.maturity = maturity;
+        this.compatible = compatible;
         this.contentType = contentType;
         this.description = description;
         this.detailedDescription = detailedDescription;
@@ -98,6 +105,7 @@ public class Addon {
         this.installed = installed;
         this.type = type;
         this.properties = properties == null ? Map.of() : properties;
+        this.loggerPackages = loggerPackages;
     }
 
     /**
@@ -154,6 +162,13 @@ public class Addon {
      */
     public @Nullable String getMaturity() {
         return maturity;
+    }
+
+    /**
+     * The (expected) compatibility of this add-on
+     */
+    public boolean getCompatible() {
+        return compatible;
     }
 
     /**
@@ -247,6 +262,13 @@ public class Addon {
         return imageLink;
     }
 
+    /**
+     * The package names that are associated with this add-on
+     */
+    public List<String> getLoggerPackages() {
+        return loggerPackages;
+    }
+
     public static Builder create(String id) {
         return new Builder(id);
     }
@@ -256,6 +278,7 @@ public class Addon {
         private String label;
         private String version = "";
         private @Nullable String maturity;
+        private boolean compatible = true;
         private String contentType;
         private @Nullable String link;
         private String author = "";
@@ -272,6 +295,7 @@ public class Addon {
         private @Nullable String backgroundColor;
         private @Nullable String imageLink;
         private Map<String, Object> properties = new HashMap<>();
+        private List<String> loggerPackages = List.of();
 
         private Builder(String id) {
             this.id = id;
@@ -289,6 +313,11 @@ public class Addon {
 
         public Builder withMaturity(@Nullable String maturity) {
             this.maturity = maturity;
+            return this;
+        }
+
+        public Builder withCompatible(boolean compatible) {
+            this.compatible = compatible;
             return this;
         }
 
@@ -378,10 +407,15 @@ public class Addon {
             return this;
         }
 
+        public Builder withLoggerPackages(List<String> loggerPackages) {
+            this.loggerPackages = loggerPackages;
+            return this;
+        }
+
         public Addon build() {
-            return new Addon(id, type, label, version, maturity, contentType, link, author, verifiedAuthor, installed,
-                    description, detailedDescription, configDescriptionURI, keywords, countries, license, connection,
-                    backgroundColor, imageLink, properties.isEmpty() ? null : properties);
+            return new Addon(id, type, label, version, maturity, compatible, contentType, link, author, verifiedAuthor,
+                    installed, description, detailedDescription, configDescriptionURI, keywords, countries, license,
+                    connection, backgroundColor, imageLink, properties.isEmpty() ? null : properties, loggerPackages);
         }
     }
 }

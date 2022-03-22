@@ -24,6 +24,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.io.rest.RESTConstants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.jaxrs.whiteboard.JaxrsWhiteboardConstants;
@@ -43,6 +45,7 @@ import org.slf4j.LoggerFactory;
 @JaxrsExtension
 @JaxrsApplicationSelect("(" + JaxrsWhiteboardConstants.JAX_RS_NAME + "=" + RESTConstants.JAX_RS_NAME + ")")
 @PreMatching
+@NonNullByDefault
 public class ProxyFilter implements ContainerRequestFilter {
 
     static final String PROTO_PROXY_HEADER = "x-forwarded-proto";
@@ -52,11 +55,11 @@ public class ProxyFilter implements ContainerRequestFilter {
     private final transient Logger logger = LoggerFactory.getLogger(ProxyFilter.class);
 
     @Override
-    public void filter(ContainerRequestContext ctx) throws IOException {
+    public void filter(@NonNullByDefault({}) ContainerRequestContext ctx) throws IOException {
         String host = getValue(ctx.getHeaders(), HOST_PROXY_HEADER);
         String scheme = getValue(ctx.getHeaders(), PROTO_PROXY_HEADER);
 
-        // if our request does not have neither headers end right here
+        // if our request does not have scheme or headers end right here
         if (scheme == null && host == null) {
             return;
         }
@@ -81,9 +84,15 @@ public class ProxyFilter implements ContainerRequestFilter {
             }
         }
 
+        // host may contain a list of hosts, cf. https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#x-headers
+        // we only take the first hostname
+        if (host.indexOf(",") > 0) {
+            host = host.substring(0, host.indexOf(","));
+        }
+
         // create a new URI from the current scheme + host in order to validate
         // it
-        String uriString = scheme + "://" + host;
+        String uriString = scheme + "://" + host.trim();
 
         URI newBaseUri = null;
         try {
@@ -114,7 +123,7 @@ public class ProxyFilter implements ContainerRequestFilter {
         ctx.setRequestUri(baseBuilder.build(), requestBuilder.build());
     }
 
-    private String getValue(MultivaluedMap<String, String> headers, String header) {
+    private @Nullable String getValue(MultivaluedMap<String, String> headers, String header) {
         List<String> values = headers.get(header);
         if (values == null || values.isEmpty()) {
             return null;
