@@ -37,6 +37,7 @@ import org.openhab.core.auth.User;
 import org.openhab.core.auth.UserRegistry;
 import org.openhab.core.auth.UsernamePasswordCredentials;
 import org.openhab.core.i18n.LocaleProvider;
+import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.http.HttpService;
@@ -60,6 +61,7 @@ public abstract class AbstractAuthPageServlet extends HttpServlet {
 
     protected HttpService httpService;
     protected UserRegistry userRegistry;
+    protected ItemRegistry itemRegistry;
     protected AuthenticationProvider authProvider;
     protected LocaleProvider localeProvider;
     protected @Nullable Instant lastAuthenticationFailure;
@@ -71,11 +73,12 @@ public abstract class AbstractAuthPageServlet extends HttpServlet {
 
     public AbstractAuthPageServlet(BundleContext bundleContext, @Reference HttpService httpService,
             @Reference UserRegistry userRegistry, @Reference AuthenticationProvider authProvider,
-            @Reference LocaleProvider localeProvider) {
+            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry) {
         this.httpService = httpService;
         this.userRegistry = userRegistry;
         this.authProvider = authProvider;
         this.localeProvider = localeProvider;
+        this.itemRegistry = itemRegistry;
 
         pageTemplate = "";
         URL resource = bundleContext.getBundle().getResource("pages/authorize.html");

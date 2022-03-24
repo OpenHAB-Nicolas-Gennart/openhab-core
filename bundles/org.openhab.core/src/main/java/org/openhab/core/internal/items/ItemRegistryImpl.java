@@ -132,6 +132,11 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             logger.warn("The managed user in getAllItemsWithRoles function is null.");
             return new HashSet<>();
         }
+        Set<String> roles = managedUser.getRoles();
+        if (roles.contains("administrator")) {
+            return getAll();
+        }
+
         HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
 
         Set<String> itemsNames = managedUser.getItems(managedUser.getRoles());
@@ -161,7 +166,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     public Collection<Item> getItemsOfType(String type) {
         Collection<Item> matchedItems = new ArrayList<>();
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             if (item.getType().equals(type)) {
                 matchedItems.add(item);
             }
@@ -178,7 +183,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         String regex = pattern.replace("?", ".?").replace("*", ".*?");
         Collection<Item> matchedItems = new ArrayList<>();
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             if (item.getName().matches(regex)) {
                 matchedItems.add(item);
             }
@@ -250,7 +255,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     }
 
     private void addMembersToGroupItem(GroupItem groupItem) {
-        for (Item i : getItems("")) {
+        for (Item i : getItems()) {
             if (i.getGroupNames().contains(groupItem.getName())) {
                 groupItem.addMember(i);
             }
@@ -312,7 +317,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setEventPublisher(EventPublisher eventPublisher) {
         super.setEventPublisher(eventPublisher);
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setEventPublisher(eventPublisher);
         }
     }
@@ -320,7 +325,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Override
     protected void unsetEventPublisher(EventPublisher eventPublisher) {
         super.unsetEventPublisher(eventPublisher);
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setEventPublisher(null);
         }
     }
@@ -339,14 +344,14 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setUnitProvider(UnitProvider unitProvider) {
         this.unitProvider = unitProvider;
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setUnitProvider(unitProvider);
         }
     }
 
     protected void unsetUnitProvider(UnitProvider unitProvider) {
         this.unitProvider = null;
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setUnitProvider(null);
         }
     }
@@ -354,14 +359,14 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     protected void setItemStateConverter(ItemStateConverter itemStateConverter) {
         this.itemStateConverter = itemStateConverter;
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setItemStateConverter(itemStateConverter);
         }
     }
 
     protected void unsetItemStateConverter(ItemStateConverter itemStateConverter) {
         this.itemStateConverter = null;
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setItemStateConverter(null);
         }
     }
@@ -369,7 +374,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     @Override
     public Collection<Item> getItemsByTag(String... tags) {
         List<Item> filteredItems = new ArrayList<>();
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             if (itemHasTags(item, tags)) {
                 filteredItems.add(item);
 
@@ -513,7 +518,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     protected void setStateDescriptionService(StateDescriptionService stateDescriptionService) {
         this.stateDescriptionService = stateDescriptionService;
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setStateDescriptionService(stateDescriptionService);
         }
     }
@@ -521,7 +526,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     protected void unsetStateDescriptionService(StateDescriptionService stateDescriptionService) {
         this.stateDescriptionService = null;
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setStateDescriptionService(null);
         }
     }
@@ -530,7 +535,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     public void setCommandDescriptionService(CommandDescriptionService commandDescriptionService) {
         this.commandDescriptionService = commandDescriptionService;
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setCommandDescriptionService(commandDescriptionService);
         }
     }
@@ -538,7 +543,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     public void unsetCommandDescriptionService(CommandDescriptionService commandDescriptionService) {
         this.commandDescriptionService = null;
 
-        for (Item item : getItems("")) {
+        for (Item item : getItems()) {
             ((GenericItem) item).setCommandDescriptionService(null);
         }
     }

@@ -26,6 +26,7 @@ import org.openhab.core.auth.ManagedUser;
 import org.openhab.core.auth.User;
 import org.openhab.core.auth.UserRegistry;
 import org.openhab.core.i18n.LocaleProvider;
+import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -53,8 +54,8 @@ public class ChangePasswordPageServlet extends AbstractAuthPageServlet {
     @Activate
     public ChangePasswordPageServlet(BundleContext bundleContext, @Reference HttpService httpService,
             @Reference UserRegistry userRegistry, @Reference AuthenticationProvider authProvider,
-            @Reference LocaleProvider localeProvider) {
-        super(bundleContext, httpService, userRegistry, authProvider, localeProvider);
+            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry) {
+        super(bundleContext, httpService, userRegistry, authProvider, localeProvider, itemRegistry);
         try {
             httpService.registerServlet("/changePassword", this, null, null);
         } catch (NamespaceException | ServletException e) {

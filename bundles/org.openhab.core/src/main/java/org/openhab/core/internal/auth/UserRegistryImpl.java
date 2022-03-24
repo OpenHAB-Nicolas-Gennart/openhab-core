@@ -86,11 +86,16 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     }
 
     @Override
-    public User register(String username, String password, Set<String> roles) {
+    public User register(String username, String password, Set<String> roles, Set<String> itemNames) {
         String passwordSalt = generateSalt(KEY_LENGTH / 8).get();
         String passwordHash = hash(password, passwordSalt, PASSWORD_ITERATIONS).get();
         ManagedUser user = new ManagedUser(username, passwordSalt, passwordHash);
         user.setRoles(new HashSet<>(roles));
+        HashMap<String, Set<String>> rolesBasedAccessControl = new HashMap<>();
+        if (roles.contains("administrator")) {
+            rolesBasedAccessControl.put("administrator", itemNames);
+        }
+        user.setRoleBasedAccessControl(rolesBasedAccessControl);
         super.add(user);
         return user;
     }

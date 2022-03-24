@@ -52,7 +52,9 @@ import javax.ws.rs.core.UriInfo;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.core.auth.ManagedRole;
 import org.openhab.core.auth.Role;
+import org.openhab.core.auth.RoleRegistry;
 import org.openhab.core.events.EventPublisher;
 import org.openhab.core.io.rest.DTOMapper;
 import org.openhab.core.io.rest.JSONResponse;
@@ -175,6 +177,7 @@ public class ItemResource implements RESTResource {
     private final MetadataRegistry metadataRegistry;
     private final MetadataSelectorMatcher metadataSelectorMatcher;
     private final VerifyToken verifyToken;
+    private final RoleRegistry roleRegistry;
 
     @Activate
     public ItemResource(//
@@ -185,8 +188,8 @@ public class ItemResource implements RESTResource {
             final @Reference LocaleService localeService, //
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
-            final @Reference MetadataSelectorMatcher metadataSelectorMatcher,
-            final @Reference VerifyToken verifyToken) {
+            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference VerifyToken verifyToken,
+            final @Reference RoleRegistry roleRegistry) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -196,6 +199,7 @@ public class ItemResource implements RESTResource {
         this.metadataRegistry = metadataRegistry;
         this.metadataSelectorMatcher = metadataSelectorMatcher;
         this.verifyToken = verifyToken;
+        this.roleRegistry = roleRegistry;
     }
 
     private UriBuilder uriBuilder(final UriInfo uriInfo, final HttpHeaders httpHeaders) {
@@ -227,6 +231,8 @@ public class ItemResource implements RESTResource {
 
         System.out.println(principal.getName());
 
+        roleRegistry.addRole("test");
+        roleRegistry.update(new ManagedRole("WORKS"));
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal.getName()).stream() //
