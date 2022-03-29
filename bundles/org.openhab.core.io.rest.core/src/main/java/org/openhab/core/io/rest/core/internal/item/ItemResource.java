@@ -52,7 +52,6 @@ import javax.ws.rs.core.UriInfo;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.auth.ManagedRole;
 import org.openhab.core.auth.Role;
 import org.openhab.core.auth.RoleRegistry;
 import org.openhab.core.events.EventPublisher;
@@ -232,7 +231,7 @@ public class ItemResource implements RESTResource {
         System.out.println(principal.getName());
 
         roleRegistry.addRole("test");
-        roleRegistry.update(new ManagedRole("WORKS"));
+
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal.getName()).stream() //
