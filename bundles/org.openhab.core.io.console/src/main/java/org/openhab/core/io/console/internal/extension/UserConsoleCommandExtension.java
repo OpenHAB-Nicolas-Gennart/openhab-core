@@ -191,8 +191,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 if (args[2].equals("administrator") || args[3].equals("administrator")) {
                                     if (checkAdministratorCredential(console)) {
                                         userRegistry.changeRole(existingUser, args[2], args[3]);
-                                        userRegistry.addItemsToRole(existingUser, "administrator",
-                                                itemRegistry.getAllItemNames());
                                         console.println("The role (" + args[2] + ") of the user " + args[1]
                                                 + " has been changed to the role (" + args[3] + ")");
                                     } else {
@@ -224,10 +222,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         } else {
                             if (checkAdministratorCredential(console)) {
                                 if (userRegistry.addRole(existingUser, args[2])) {
-                                    if (args[2].equals("administrator")) {
-                                        userRegistry.addItemsToRole(existingUser, "administrator",
-                                                itemRegistry.getAllItemNames());
-                                    }
                                     console.println(
                                             "The role " + args[2] + " of the user " + args[1] + " has been added.");
                                 } else {
@@ -301,7 +295,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             try {
                                 if (checkAdministratorCredential(console)) {
                                     Set<String> items = getAuthorizedItems(args[3]);
-                                    userRegistry.addItemsToRole(existingUser, args[2], items);
                                     System.out.println(
                                             "Here you can see the role(s) and the actual authorized item(s) for the user "
                                                     + args[2] + ": ");
@@ -334,7 +327,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             try {
                                 if (checkAdministratorCredential(console)) {
                                     Set<String> items = getAuthorizedItems(args[3]);
-                                    userRegistry.removeItemsFromRole(existingUser, args[2], items);
                                     System.out.println(
                                             "He you can see the role(s) and the actual authorized item(s) for the user "
                                                     + args[2] + ": ");

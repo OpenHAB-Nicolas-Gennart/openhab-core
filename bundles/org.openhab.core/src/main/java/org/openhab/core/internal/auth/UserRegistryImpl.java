@@ -21,17 +21,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.core.auth.Authentication;
-import org.openhab.core.auth.AuthenticationException;
-import org.openhab.core.auth.Credentials;
-import org.openhab.core.auth.ManagedUser;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserApiToken;
-import org.openhab.core.auth.UserApiTokenCredentials;
-import org.openhab.core.auth.UserProvider;
-import org.openhab.core.auth.UserRegistry;
-import org.openhab.core.auth.UserSession;
-import org.openhab.core.auth.UsernamePasswordCredentials;
+import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -91,11 +81,6 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         String passwordHash = hash(password, passwordSalt, PASSWORD_ITERATIONS).get();
         ManagedUser user = new ManagedUser(username, passwordSalt, passwordHash);
         user.setRoles(new HashSet<>(roles));
-        HashMap<String, Set<String>> rolesBasedAccessControl = new HashMap<>();
-        if (roles.contains("administrator")) {
-            rolesBasedAccessControl.put("administrator", itemNames);
-        }
-        user.setRoleBasedAccessControl(rolesBasedAccessControl);
         super.add(user);
         return user;
     }
@@ -205,12 +190,6 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         }
         roles.remove(oldRole);
         boolean ret = roles.add(newRole);
-        if (ret) {
-            // Update the user's role-based access control hash set.
-            HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-            roleBasedAccessControl.put(newRole, roleBasedAccessControl.get(newRole));
-            managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        }
 
         managedUser.setRoles(roles);
         update(user);
@@ -226,12 +205,6 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         Set<String> roles = managedUser.getRoles();
 
         boolean ret = roles.add(role);
-        if (ret) {
-            // Update the user's role-based access control hash set.
-            HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-            roleBasedAccessControl.put(role, new HashSet<>());
-            managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        }
 
         managedUser.setRoles(roles);
         update(managedUser);
@@ -254,12 +227,6 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         Set<String> roles = managedUser.getRoles();
 
         boolean ret = roles.remove(role);
-        if (ret) {
-            // Update the user's role-based access control hash set.
-            HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-            roleBasedAccessControl.remove(role);
-            managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        }
 
         managedUser.setRoles(roles);
         update(managedUser);
@@ -287,32 +254,6 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
             }
         }
         return count;
-    }
-
-    @Override
-    public void addItemsToRole(User user, String role, Set<String> itemNames) {
-        ManagedUser managedUser = (ManagedUser) user;
-        HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-        HashSet<String> newItemNames = (HashSet<String>) roleBasedAccessControl.get(role);
-
-        newItemNames.addAll(itemNames);
-
-        roleBasedAccessControl.put(role, newItemNames);
-        managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        update(managedUser);
-    }
-
-    @Override
-    public void removeItemsFromRole(User user, String role, Set<String> itemNames) {
-        ManagedUser managedUser = (ManagedUser) user;
-        HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-        HashSet<String> newItemNames = (HashSet<String>) roleBasedAccessControl.get(role);
-
-        newItemNames.removeAll(itemNames);
-
-        roleBasedAccessControl.put(role, newItemNames);
-        managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        update(managedUser);
     }
 
     @Override

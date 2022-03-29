@@ -85,28 +85,10 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
     public int countRole(String role);
 
     /**
-     * Add the set of itemNames of the role for the specified user.
-     *
-     * @param role the specified role
-     * @param itemNames Set of items
-     * @param user the specified user
-     */
-    public void addItemsToRole(User user, String role, Set<String> itemNames);
-
-    /**
-     * remove the set of itemNames of the role for the specified user.
-     *
-     * @param role the specified role
-     * @param itemNames Set of items to be removed
-     * @param user the specified user
-     */
-    public void removeItemsFromRole(User user, String role, Set<String> itemNames);
-
-    /**
      * Change the password for an {@link User} in this registry. The implementation receives the new password and is
      * responsible for their secure storage (for instance by hashing the password).
      *
-     * @param username the username of the existing user
+     * @param user the username of the existing user
      * @param newPassword the new password
      */
     public void changePassword(User user, String newPassword);

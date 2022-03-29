@@ -13,7 +13,12 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
 
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.auth.*;
+import org.openhab.core.auth.Authentication;
+import org.openhab.core.auth.AuthenticationException;
+import org.openhab.core.auth.User;
+import org.openhab.core.auth.UserApiTokenCredentials;
+import org.openhab.core.auth.UserRegistry;
+import org.openhab.core.auth.UsernamePasswordCredentials;
 import org.openhab.core.io.rest.auth.internal.*;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
