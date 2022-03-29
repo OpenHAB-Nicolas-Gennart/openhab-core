@@ -6,6 +6,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.openhab.core.items.ItemRegistry;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.*;
 
 @NonNullByDefault
@@ -19,9 +20,16 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
      *
      */
     @Activate
-    public RoleRegistryImpl(@Reference ItemRegistry itemRegistry) {
+    public RoleRegistryImpl(BundleContext bundleContext, @Reference ItemRegistry itemRegistry) {
         super(RoleProvider.class);
+        super.activate(bundleContext);
         this.itemRegistry = itemRegistry;
+    }
+
+    @Override
+    @Deactivate
+    protected void deactivate() {
+        super.deactivate();
     }
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)

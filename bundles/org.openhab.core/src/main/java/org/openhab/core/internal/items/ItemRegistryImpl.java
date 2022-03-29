@@ -20,9 +20,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.auth.ManagedUser;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserRegistry;
+import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.openhab.core.common.registry.Provider;
 import org.openhab.core.events.EventPublisher;
@@ -136,24 +134,22 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         if (roles.contains("administrator")) {
             return getAll();
         }
-
-        HashMap<String, Set<String>> roleBasedAccessControl = managedUser.getRoleBasedAccessControl();
-
-        Set<String> itemsNames = managedUser.getItems(managedUser.getRoles());
         Set<Item> items = new HashSet<>();
-        for (String item : itemsNames) {
-            try {
-                items.add(getItem(item));
-            } catch (ItemNotFoundException itemNotFoundException) {
-                logger.warn("The string name of the item does not exist");
-                for (Map.Entry<String, Set<String>> entries : roleBasedAccessControl.entrySet()) {
-                    entries.getValue().remove(item);
-                }
-            }
-        }
-        managedUser.setRoleBasedAccessControl(roleBasedAccessControl);
-        userRegistry.update(managedUser);
-
+        /*
+         * for (String role : roles) {
+         * ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
+         * if (managedRole != null) {
+         * for (String itemName : managedRole.getItemNames()) {
+         * try {
+         * items.add(getItem(itemName));
+         * } catch (ItemNotFoundException e) {
+         * logger.warn("The string name of the item does not exist");
+         * logger.warn("ItemNotFoundException :", e);
+         * }
+         * }
+         * }
+         * }
+         */
         return items;
     }
 

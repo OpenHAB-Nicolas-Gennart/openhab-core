@@ -20,10 +20,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.core.auth.ManagedUser;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserApiToken;
-import org.openhab.core.auth.UserRegistry;
+import org.openhab.core.auth.*;
 import org.openhab.core.io.console.Console;
 import org.openhab.core.io.console.extensions.AbstractConsoleCommandExtension;
 import org.openhab.core.io.console.extensions.ConsoleCommandExtension;
@@ -69,13 +66,15 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
 
     private final UserRegistry userRegistry;
     private final ItemRegistry itemRegistry;
+    private final RoleRegistry roleRegistry;
 
     @Activate
     public UserConsoleCommandExtension(final @Reference UserRegistry userRegistry,
-            final @Reference ItemRegistry itemRegistry) {
+            final @Reference ItemRegistry itemRegistry, final @Reference RoleRegistry roleRegistry) {
         super("users", "Access the user registry.");
         this.userRegistry = userRegistry;
         this.itemRegistry = itemRegistry;
+        this.roleRegistry = roleRegistry;
     }
 
     @Override
@@ -91,9 +90,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "removes the specified role of the user"),
                 buildCommandUsage(SUBCMD_LISTAC,
                         "lists of users with his roles and the items allowed for each of these roles, the role-based access control model will be display"),
-                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE + " <userId> <role> <itemName>",
+                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE + " <role> <itemName>",
                         "adds the specified item to the role"),
-                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE + " <userId> <role> <itemName>",
+                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE + " <role> <itemName>",
                         "removes the specified item to the role"),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
@@ -274,9 +273,11 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         for (ManagedUser managedUser : managedUsers) {
                             System.out.println(
                                     "The user " + managedUser.getName() + " has access to the following items:");
-                            for (Map.Entry<String, Set<String>> roleBasedAccessControl : managedUser
-                                    .getRoleBasedAccessControl().entrySet()) {
-                                printRoleWithItems(roleBasedAccessControl.getKey(), roleBasedAccessControl.getValue());
+                            for (String role : managedUser.getRoles()) {
+                                ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
+                                if(managedRole != null){
+                                    printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
+                                }
                             }
                         }
 
@@ -285,67 +286,59 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     }
                     break;
                 case SUBCMD_AC_ADDITEMTOROLE:
-                    if (args.length == 4) {
-                        User existingUser = userRegistry.get(args[1]);
-                        if (existingUser == null) {
-                            console.println("The user doesn't exist, here you can find the available users:");
-                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
-                            return;
-                        } else {
-                            try {
-                                if (checkAdministratorCredential(console)) {
-                                    Set<String> items = getAuthorizedItems(args[3]);
-                                    System.out.println(
-                                            "Here you can see the role(s) and the actual authorized item(s) for the user "
-                                                    + args[2] + ": ");
-                                    ManagedUser managedUser = (ManagedUser) existingUser;
-                                    for (Map.Entry<String, Set<String>> entries : managedUser
-                                            .getRoleBasedAccessControl().entrySet()) {
-                                        printRoleWithItems(entries.getKey(), entries.getValue());
+                    if (args.length == 3) {
+                        try {
+                            if (checkAdministratorCredential(console)) {
+                                Set<String> items = getAuthorizedItems(args[2]);
+                                try {
+                                    roleRegistry.addItemsToRole(args[1], (HashSet<String>) items);
+                                    System.out.println("Here you can see the role " + args[2]
+                                            + " and his actual authorized item(s) : ");
+                                    ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
+                                    if(managedRole != null){
+                                        printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                                     }
-                                } else {
-                                    console.println("You did not put a correct administrator credential.");
+                                } catch (IllegalArgumentException iae) {
+                                    logger.warn("IllegalArgumentException: ", iae);
+                                    console.println("Look at your logs with the command <log:tail>.");
                                 }
-                            } catch (IllegalArgumentException ie) {
-                                logger.warn("IllegalArgumentException: ", ie);
-                                console.println("Look at your logs with the command <log:tail>.");
-                            }
-                        }
 
-                    } else {
-                        console.printUsage(findUsage(SUBCMD_AC_ADDITEMTOROLE));
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
+                            }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                        }
                     }
+
                     break;
                 case SUBCMD_AC_RMVITEMTOROLE:
-                    if (args.length == 4) {
-                        User existingUser = userRegistry.get(args[1]);
-                        if (existingUser == null) {
-                            console.println("The user doesn't exist, here you can find the available users:");
-                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
-                            return;
-                        } else {
-                            try {
-                                if (checkAdministratorCredential(console)) {
-                                    Set<String> items = getAuthorizedItems(args[3]);
-                                    System.out.println(
-                                            "He you can see the role(s) and the actual authorized item(s) for the user "
-                                                    + args[2] + ": ");
-                                    ManagedUser managedUser = (ManagedUser) existingUser;
-                                    for (Map.Entry<String, Set<String>> entries : managedUser
-                                            .getRoleBasedAccessControl().entrySet()) {
-                                        printRoleWithItems(entries.getKey(), entries.getValue());
+                    if (args.length == 3) {
+                        try {
+                            if (checkAdministratorCredential(console)) {
+                                try {
+                                    Set<String> items = getAuthorizedItems(args[2]);
+                                    roleRegistry.removeItemsToRole(args[1], (HashSet<String>) items);
+                                    System.out.println("Here you can see the role " + args[2]
+                                            + " and his actual authorized item(s) : ");
+                                    ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
+                                    if(managedRole != null){
+                                        printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                                     }
-                                } else {
-                                    console.println("You did not put a correct administrator credential.");
+                                } catch (IllegalArgumentException iae) {
+                                    logger.warn("IllegalArgumentException: ", iae);
+                                    console.println("Look at your logs with the command <log:tail>.");
                                 }
-                            } catch (IllegalArgumentException ie) {
-                                logger.warn("IllegalArgumentException: ", ie);
-                                console.println("Look at your logs with the command <log:tail>.");
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
                             }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
                         }
-                    } else {
-                        console.printUsage(findUsage(SUBCMD_AC_RMVITEMTOROLE));
                     }
+
                     break;
                 case SUBCMD_CHANGEPASSWORD:
                     if (args.length == 3) {
@@ -553,7 +546,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
      * }
      * LocalDateTime secondTime = LocalDateTime.now();
      * long interval = this.firstTime.until(secondTime, ChronoUnit.MINUTES);
-     * 
+     *
      * return interval >= 15;
      * }
      */

@@ -232,8 +232,6 @@ public class ItemResource implements RESTResource {
 
         System.out.println(principal.getName());
 
-        roleRegistry.addRole("test");
-
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal.getName()).stream() //
