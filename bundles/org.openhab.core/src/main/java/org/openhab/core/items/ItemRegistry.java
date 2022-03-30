@@ -63,9 +63,10 @@ public interface ItemRegistry extends Registry<Item, String> {
      * This method retrieves all items that belong to the roles of the principal
      *
      * @param principal The information about the user
+     * @param itemNames specifies the elements that must be returned
      * @return a collection for the authorised items
      */
-    public Collection<Item> getAllItemsWithRoles(String principal);
+    public Collection<Item> getAllItemsWithRoles(String principal, Set<String> itemNames);
 
     /**
      * This method retrieves all items with the given type

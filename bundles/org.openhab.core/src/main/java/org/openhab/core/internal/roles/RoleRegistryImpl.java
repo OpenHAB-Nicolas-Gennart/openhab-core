@@ -59,7 +59,10 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
     }
 
     @Override
-    public void updateRole(String oldRole, String newRole) {
+    public void changeRole(String oldRole, String newRole) {
+        if (get(newRole) != null) {
+            throw new IllegalArgumentException("The newRole " + newRole + " already exist in the roleRegistry.");
+        }
         ManagedRole managedrole = new ManagedRole(newRole);
         // We check if the oldRole exist.
         if (get(oldRole) != null) {
@@ -91,7 +94,6 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
 
     @Override
     public void removeRole(String role) {
-
         // We check if the role exist.
         if (get(role) != null) {
             remove(role);

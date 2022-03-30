@@ -30,7 +30,7 @@ public interface RoleRegistry extends Registry<Role, String> {
      * @param oldRole to be replaced
      * @param newRole to put
      */
-    public void updateRole(String oldRole, String newRole);
+    public void changeRole(String oldRole, String newRole);
 
     /**
      * Add a role to the registry if it doesn't exist. If the role is administrator, add all the itemNames too.

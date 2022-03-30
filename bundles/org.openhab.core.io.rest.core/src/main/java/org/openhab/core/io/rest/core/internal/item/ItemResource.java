@@ -14,16 +14,7 @@ package org.openhab.core.io.rest.core.internal.item;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,8 +44,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.auth.Role;
-import org.openhab.core.auth.RoleRegistry;
+import org.openhab.core.auth.*;
 import org.openhab.core.events.EventPublisher;
 import org.openhab.core.io.rest.DTOMapper;
 import org.openhab.core.io.rest.JSONResponse;
@@ -178,6 +168,7 @@ public class ItemResource implements RESTResource {
     private final MetadataSelectorMatcher metadataSelectorMatcher;
     private final VerifyToken verifyToken;
     private final RoleRegistry roleRegistry;
+    private final UserRegistry userRegistry;
 
     @Activate
     public ItemResource(//
@@ -189,7 +180,7 @@ public class ItemResource implements RESTResource {
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
             final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference VerifyToken verifyToken,
-            final @Reference RoleRegistry roleRegistry) {
+            final @Reference RoleRegistry roleRegistry, final @Reference UserRegistry userRegistry) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -200,6 +191,7 @@ public class ItemResource implements RESTResource {
         this.metadataSelectorMatcher = metadataSelectorMatcher;
         this.verifyToken = verifyToken;
         this.roleRegistry = roleRegistry;
+        this.userRegistry = userRegistry;
     }
 
     private UriBuilder uriBuilder(final UriInfo uriInfo, final HttpHeaders httpHeaders) {
@@ -825,7 +817,7 @@ public class ItemResource implements RESTResource {
         if (tags == null) {
             if (type == null) {
                 if (principal != null) {
-                    items = itemRegistry.getAllItemsWithRoles(principal);
+                    items = itemRegistry.getAllItemsWithRoles(principal, getItemNames(principal));
                 } else {
                     items = itemRegistry.getItems();
                 }
@@ -842,6 +834,26 @@ public class ItemResource implements RESTResource {
         }
 
         return items;
+    }
+
+    /**
+     * Return all the items name that correspond to the roles of the principal
+     *
+     * @param principal that want its itemNames
+     * @return set of itemNames
+     */
+    public Set<String> getItemNames(String principal) {
+        ManagedUser managedUser = (ManagedUser) userRegistry.get(principal);
+        if (managedUser == null) {
+            return new HashSet<>();
+        }
+        Set<String> roles = managedUser.getRoles();
+        Set<String> itemNames = new HashSet<>();
+        for (String role : roles) {
+            ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
+            itemNames.addAll(managedRole.getItemNames());
+        }
+        return itemNames;
     }
 
     private void addMetadata(EnrichedItemDTO dto, Set<String> namespaces, @Nullable Predicate<Metadata> filter) {

@@ -119,7 +119,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     }
 
     @Override
-    public Collection<Item> getAllItemsWithRoles(String principal) {
+    public Collection<Item> getAllItemsWithRoles(String principal, Set<String> itemNames) {
         if (principal.isEmpty()) {
             return getAll();
         }
@@ -136,21 +136,13 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         }
         Set<Item> items = new HashSet<>();
 
-        /*
-         * for (String role : roles) {
-         * ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
-         * if (managedRole != null) {
-         * for (String itemName : managedRole.getItemNames()) {
-         * try {
-         * items.add(getItem(itemName));
-         * } catch (ItemNotFoundException e) {
-         * logger.warn("The string name of the item does not exist");
-         * logger.warn("ItemNotFoundException :", e);
-         * }
-         * }
-         * }
-         * }
-         */
+        for (String itemName : itemNames) {
+            try {
+                items.add(getItem(itemName));
+            } catch (ItemNotFoundException e) {
+                logger.warn("ItemNotFoundException ", e);
+            }
+        }
 
         return items;
     }

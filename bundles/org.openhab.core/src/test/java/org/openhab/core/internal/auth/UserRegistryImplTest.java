@@ -16,7 +16,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -73,7 +72,7 @@ public class UserRegistryImplTest {
 
     @Test
     public void testUserManagement() throws Exception {
-        User user = registry.register("username", "password", Set.of("administrator"), new HashSet<>());
+        User user = registry.register("username", "password", Set.of("administrator"));
         registry.added(managedProviderMock, user);
         assertNotNull(user);
         assertTrue(registry.containRole("administrator"));
@@ -109,8 +108,7 @@ public class UserRegistryImplTest {
 
     @Test
     public void testSessions() throws Exception {
-        ManagedUser user = (ManagedUser) registry.register("username", "password", Set.of("administrator"),
-                new HashSet<>());
+        ManagedUser user = (ManagedUser) registry.register("username", "password", Set.of("administrator"));
         registry.added(managedProviderMock, user);
         assertNotNull(user);
         UserSession session1 = new UserSession(UUID.randomUUID().toString(), "s1", "urn:test", "urn:test", "scope");
@@ -128,8 +126,7 @@ public class UserRegistryImplTest {
 
     @Test
     public void testApiTokens() throws Exception {
-        ManagedUser user = (ManagedUser) registry.register("username", "password", Set.of("administrator"),
-                new HashSet<>());
+        ManagedUser user = (ManagedUser) registry.register("username", "password", Set.of("administrator"));
         registry.added(managedProviderMock, user);
         assertNotNull(user);
         String token1 = registry.addUserApiToken(user, "token1", "scope1");

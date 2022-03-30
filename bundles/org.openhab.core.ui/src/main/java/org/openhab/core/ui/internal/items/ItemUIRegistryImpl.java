@@ -884,8 +884,8 @@ public class ItemUIRegistryImpl implements ItemUIRegistry {
     }
 
     @Override
-    public Collection<Item> getAllItemsWithRoles(String principal) {
-        return itemRegistry.getAllItemsWithRoles(principal);
+    public Collection<Item> getAllItemsWithRoles(String principal, Set<String> set) {
+        return itemRegistry.getAllItemsWithRoles(principal, set);
     }
 
     @Override

@@ -30,12 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.auth.Authentication;
-import org.openhab.core.auth.AuthenticationException;
-import org.openhab.core.auth.AuthenticationProvider;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserRegistry;
-import org.openhab.core.auth.UsernamePasswordCredentials;
+import org.openhab.core.auth.*;
 import org.openhab.core.i18n.LocaleProvider;
 import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
@@ -62,6 +57,7 @@ public abstract class AbstractAuthPageServlet extends HttpServlet {
     protected HttpService httpService;
     protected UserRegistry userRegistry;
     protected ItemRegistry itemRegistry;
+    protected RoleRegistry roleRegistry;
     protected AuthenticationProvider authProvider;
     protected LocaleProvider localeProvider;
     protected @Nullable Instant lastAuthenticationFailure;
@@ -73,12 +69,14 @@ public abstract class AbstractAuthPageServlet extends HttpServlet {
 
     public AbstractAuthPageServlet(BundleContext bundleContext, @Reference HttpService httpService,
             @Reference UserRegistry userRegistry, @Reference AuthenticationProvider authProvider,
-            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry) {
+            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry,
+            @Reference RoleRegistry roleRegistry) {
         this.httpService = httpService;
         this.userRegistry = userRegistry;
         this.authProvider = authProvider;
         this.localeProvider = localeProvider;
         this.itemRegistry = itemRegistry;
+        this.roleRegistry = roleRegistry;
 
         pageTemplate = "";
         URL resource = bundleContext.getBundle().getResource("pages/authorize.html");

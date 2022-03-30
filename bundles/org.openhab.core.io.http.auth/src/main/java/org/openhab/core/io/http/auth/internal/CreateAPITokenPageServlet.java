@@ -20,11 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.core.auth.AuthenticationException;
-import org.openhab.core.auth.AuthenticationProvider;
-import org.openhab.core.auth.ManagedUser;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserRegistry;
+import org.openhab.core.auth.*;
 import org.openhab.core.i18n.LocaleProvider;
 import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
@@ -54,8 +50,9 @@ public class CreateAPITokenPageServlet extends AbstractAuthPageServlet {
     @Activate
     public CreateAPITokenPageServlet(BundleContext bundleContext, @Reference HttpService httpService,
             @Reference UserRegistry userRegistry, @Reference AuthenticationProvider authProvider,
-            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry) {
-        super(bundleContext, httpService, userRegistry, authProvider, localeProvider, itemRegistry);
+            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry,
+            @Reference RoleRegistry roleRegistry) {
+        super(bundleContext, httpService, userRegistry, authProvider, localeProvider, itemRegistry, roleRegistry);
         try {
             httpService.registerServlet("/createApiToken", this, null, null);
         } catch (NamespaceException | ServletException e) {

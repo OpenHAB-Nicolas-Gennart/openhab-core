@@ -76,7 +76,7 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     }
 
     @Override
-    public User register(String username, String password, Set<String> roles, Set<String> itemNames) {
+    public User register(String username, String password, Set<String> roles) {
         String passwordSalt = generateSalt(KEY_LENGTH / 8).get();
         String passwordHash = hash(password, passwordSalt, PASSWORD_ITERATIONS).get();
         ManagedUser user = new ManagedUser(username, passwordSalt, passwordHash);

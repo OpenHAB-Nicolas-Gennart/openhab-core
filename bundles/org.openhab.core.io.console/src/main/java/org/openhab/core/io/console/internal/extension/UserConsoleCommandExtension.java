@@ -17,15 +17,12 @@ package org.openhab.core.io.console.internal.extension;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.*;
 import org.openhab.core.io.console.Console;
 import org.openhab.core.io.console.extensions.AbstractConsoleCommandExtension;
 import org.openhab.core.io.console.extensions.ConsoleCommandExtension;
-import org.openhab.core.items.Item;
-import org.openhab.core.items.ItemRegistry;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -45,13 +42,12 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_LIST = "list";
     private static final String SUBCMD_ADD = "add";
     private static final String SUBCMD_REMOVE = "remove";
+
     private static final String SUBCMD_CHANGEROLE = "changeRole";
     private static final String SUBCMD_LISTROLES = "listRoles";
     private static final String SUBCMD_ADDROLE = "addRole";
     private static final String SUBCMD_REMOVEROLE = "removeRole";
-    private static final String SUBCMD_LISTAC = "listAC";
-    private static final String SUBCMD_AC_ADDITEMTOROLE = "addItemToRole";
-    private static final String SUBCMD_AC_RMVITEMTOROLE = "rmvItemToRole";
+
     private static final String SUBCMD_CHANGEPASSWORD = "changePassword";
     private static final String SUBCMD_LISTAPITOKENS = "listApiTokens";
     private static final String SUBCMD_ADDAPITOKEN = "addApiToken";
@@ -65,15 +61,13 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private final Logger logger = LoggerFactory.getLogger(UserConsoleCommandExtension.class);
 
     private final UserRegistry userRegistry;
-    private final ItemRegistry itemRegistry;
     private final RoleRegistry roleRegistry;
 
     @Activate
     public UserConsoleCommandExtension(final @Reference UserRegistry userRegistry,
-            final @Reference ItemRegistry itemRegistry, final @Reference RoleRegistry roleRegistry) {
+            final @Reference RoleRegistry roleRegistry) {
         super("users", "Access the user registry.");
         this.userRegistry = userRegistry;
-        this.itemRegistry = itemRegistry;
         this.roleRegistry = roleRegistry;
     }
 
@@ -88,12 +82,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         "changes the specific role of a user with a new one"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "adds the specified role to the specified user"),
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "removes the specified role of the user"),
-                buildCommandUsage(SUBCMD_LISTAC,
-                        "lists of users with his roles and the items allowed for each of these roles, the role-based access control model will be display"),
-                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE + " <role> <itemName>",
-                        "adds the specified item to the role"),
-                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE + " <role> <itemName>",
-                        "removes the specified item to the role"),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
                 buildCommandUsage(SUBCMD_ADDAPITOKEN + " <userId> <tokenName> <scope>",
@@ -118,8 +106,8 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         if (existingUser == null) {
                             // ask for an administrator credential.
                             if (checkAdministratorCredential(console)) {
-                                User newUser = userRegistry.register(args[1], args[2], Set.of(args[3]),
-                                        itemRegistry.getAllItemNames());
+                                User newUser = userRegistry.register(args[1], args[2], Set.of(args[3]));
+                                roleRegistry.addRole(args[3]);
                                 console.println(newUser.toString());
                                 console.println("User created.");
                             } else {
@@ -189,6 +177,16 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             try {
                                 if (args[2].equals("administrator") || args[3].equals("administrator")) {
                                     if (checkAdministratorCredential(console)) {
+                                        if (roleRegistry.get(args[2]) == null) {
+                                            console.println(
+                                                    "The role " + args[2] + " does not exist in the RoleRegistry.");
+                                            return;
+                                        }
+                                        if (roleRegistry.get(args[3]) == null) {
+                                            console.println(
+                                                    "The role " + args[3] + "does not exist in the RoleRegistry.");
+                                            return;
+                                        }
                                         userRegistry.changeRole(existingUser, args[2], args[3]);
                                         console.println("The role (" + args[2] + ") of the user " + args[1]
                                                 + " has been changed to the role (" + args[3] + ")");
@@ -220,6 +218,10 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             return;
                         } else {
                             if (checkAdministratorCredential(console)) {
+                                if (roleRegistry.get(args[2]) == null) {
+                                    console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
+                                    return;
+                                }
                                 if (userRegistry.addRole(existingUser, args[2])) {
                                     console.println(
                                             "The role " + args[2] + " of the user " + args[1] + " has been added.");
@@ -245,6 +247,10 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         } else {
                             try {
                                 if (checkAdministratorCredential(console)) {
+                                    if (roleRegistry.get(args[2]) == null) {
+                                        console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
+                                        return;
+                                    }
                                     if (userRegistry.removeRole(existingUser, args[2])) {
                                         console.println("The role " + args[2] + " of the user " + args[1]
                                                 + " has been removed.");
@@ -264,82 +270,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
                     }
                     break;
-                case SUBCMD_LISTAC:
-                    if (args.length == 1) {
-                        Collection<User> users = userRegistry.getAll();
-                        Collection<ManagedUser> managedUsers = users.stream().map(user -> (ManagedUser) user)
-                                .collect(Collectors.toList());
-                        System.out.println("<ROLE-BASED ACCESS CONTROL MODEL>");
-                        for (ManagedUser managedUser : managedUsers) {
-                            System.out.println(
-                                    "The user " + managedUser.getName() + " has access to the following items:");
-                            for (String role : managedUser.getRoles()) {
-                                ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
-                                if (managedRole != null) {
-                                    printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
-                                }
-                            }
-                        }
 
-                    } else {
-                        console.printUsage(findUsage(SUBCMD_LISTAC));
-                    }
-                    break;
-                case SUBCMD_AC_ADDITEMTOROLE:
-                    if (args.length == 3) {
-                        try {
-                            if (checkAdministratorCredential(console)) {
-                                Set<String> items = getAuthorizedItems(args[2]);
-                                try {
-                                    roleRegistry.addItemsToRole(args[1], (HashSet<String>) items);
-                                    System.out.println("Here you can see the role " + args[2]
-                                            + " and his actual authorized item(s) : ");
-                                    ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
-                                    if (managedRole != null) {
-                                        printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
-                                    }
-                                } catch (IllegalArgumentException iae) {
-                                    logger.warn("IllegalArgumentException: ", iae);
-                                    console.println("Look at your logs with the command <log:tail>.");
-                                }
-
-                            } else {
-                                console.println("You did not put a correct administrator credential.");
-                            }
-                        } catch (IllegalArgumentException ie) {
-                            logger.warn("IllegalArgumentException: ", ie);
-                            console.println("Look at your logs with the command <log:tail>.");
-                        }
-                    }
-
-                    break;
-                case SUBCMD_AC_RMVITEMTOROLE:
-                    if (args.length == 3) {
-                        try {
-                            if (checkAdministratorCredential(console)) {
-                                try {
-                                    Set<String> items = getAuthorizedItems(args[2]);
-                                    roleRegistry.removeItemsToRole(args[1], (HashSet<String>) items);
-                                    System.out.println("Here you can see the role " + args[2]
-                                            + " and his actual authorized item(s) : ");
-                                    ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
-                                    if (managedRole != null) {
-                                        printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
-                                    }
-                                } catch (IllegalArgumentException iae) {
-                                    logger.warn("IllegalArgumentException: ", iae);
-                                    console.println("Look at your logs with the command <log:tail>.");
-                                }
-                            } else {
-                                console.println("You did not put a correct administrator credential.");
-                            }
-                        } catch (IllegalArgumentException ie) {
-                            logger.warn("IllegalArgumentException: ", ie);
-                            console.println("Look at your logs with the command <log:tail>.");
-                        }
-                    }
-
-                    break;
                 case SUBCMD_CHANGEPASSWORD:
                     if (args.length == 3) {
                         User user = userRegistry.get(args[1]);
@@ -550,36 +481,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
      * return interval >= 15;
      * }
      */
-
-    /**
-     * Add the itemName and all his children itemName from the semantic model of OpenHAB .
-     *
-     * @param itemName the itemName.
-     * @return a set of items name
-     */
-    private Set<String> getAuthorizedItems(String itemName) {
-        System.out.println(itemRegistry.getAllItemNames());
-        if (!itemRegistry.getAllItemNames().contains(itemName)) {
-            return new HashSet<>();
-        }
-
-        Set<Item> items = (Set<Item>) itemRegistry.getAll();
-
-        LinkedList<String> toAdd = new LinkedList<>();
-        toAdd.add(itemName);
-
-        Set<String> returnedItems = new HashSet<>();
-        while (!toAdd.isEmpty()) {
-            String headItemName = toAdd.poll();
-            for (Item item : items) {
-                if (item.getGroupNames().contains(headItemName)) {
-                    returnedItems.add(item.getName());
-                    toAdd.add(item.getName());
-                }
-            }
-        }
-        return returnedItems;
-    }
 
     /**
      * Print the role and all the items to the console.

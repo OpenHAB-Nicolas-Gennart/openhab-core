@@ -25,13 +25,7 @@ import javax.ws.rs.core.HttpHeaders;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.http.HttpStatus;
-import org.openhab.core.auth.AuthenticationException;
-import org.openhab.core.auth.AuthenticationProvider;
-import org.openhab.core.auth.ManagedUser;
-import org.openhab.core.auth.PendingToken;
-import org.openhab.core.auth.Role;
-import org.openhab.core.auth.User;
-import org.openhab.core.auth.UserRegistry;
+import org.openhab.core.auth.*;
 import org.openhab.core.i18n.LocaleProvider;
 import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
@@ -66,8 +60,9 @@ public class AuthorizePageServlet extends AbstractAuthPageServlet {
     @Activate
     public AuthorizePageServlet(BundleContext bundleContext, @Reference HttpService httpService,
             @Reference UserRegistry userRegistry, @Reference AuthenticationProvider authProvider,
-            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry) {
-        super(bundleContext, httpService, userRegistry, authProvider, localeProvider, itemRegistry);
+            @Reference LocaleProvider localeProvider, @Reference ItemRegistry itemRegistry,
+            @Reference RoleRegistry roleRegistry) {
+        super(bundleContext, httpService, userRegistry, authProvider, localeProvider, itemRegistry, roleRegistry);
         try {
             httpService.registerServlet("/auth", this, null, null);
         } catch (NamespaceException | ServletException e) {
@@ -161,7 +156,9 @@ public class AuthorizePageServlet extends AbstractAuthPageServlet {
                     return;
                 }
 
-                user = userRegistry.register(username, password, Set.of(Role.ADMIN), itemRegistry.getAllItemNames());
+                user = userRegistry.register(username, password, Set.of(Role.ADMIN));
+                roleRegistry.addRole(Role.ADMIN);
+
                 logger.info("First user account created: {}", username);
             } else {
                 user = login(username, password);
