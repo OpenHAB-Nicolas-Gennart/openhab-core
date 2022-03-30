@@ -222,8 +222,6 @@ public class ItemResource implements RESTResource {
             principal = verifyToken.anonymousPrincipal;
         }
 
-        System.out.println(principal.getName());
-
         final UriBuilder uriBuilder = uriBuilder(uriInfo, httpHeaders);
 
         Stream<EnrichedItemDTO> itemStream = getItems(type, tags, principal.getName()).stream() //
@@ -851,7 +849,9 @@ public class ItemResource implements RESTResource {
         Set<String> itemNames = new HashSet<>();
         for (String role : roles) {
             ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
-            itemNames.addAll(managedRole.getItemNames());
+            if (managedRole != null) {
+                itemNames.addAll(managedRole.getItemNames());
+            }
         }
         return itemNames;
     }

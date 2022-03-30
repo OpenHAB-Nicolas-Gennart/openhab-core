@@ -36,7 +36,7 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_LISTROLES = "listRoles";
     private static final String SUBCMD_CHANGEROLE = "changeRole";
     private static final String SUBCMD_ADDROLE = "addRole";
-    private static final String SUBCMD_REMOVEROLE = "removeRole";
+    private static final String SUBCMD_REMOVEROLE = "rmvRole";
 
     private static final String SUBCMD_AC_ADDITEMTOROLE = "addItemToRole";
     private static final String SUBCMD_AC_RMVITEMTOROLE = "rmvItemToRole";
@@ -118,6 +118,10 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_CHANGEROLE:
                     if (args.length == 3) {
                         try {
+                            if(args[1].equals("administrator")){
+                                console.println("The administrator role cannot be change");
+                                return;
+                            }
                             roleRegistry.changeRole(args[1], args[2]);
                             // We change the role for the user too.
                             for (User user : userRegistry.getAll()) {
@@ -155,6 +159,10 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_REMOVEROLE:
                     if (args.length == 2) {
                         try {
+                            if(args[1].equals("administrator")){
+                                console.println("The administrator role cannot be remove");
+                                return;
+                            }
                             roleRegistry.removeRole(args[1]);
                             // We remove the role for the user too.
                             for (User user : userRegistry.getAll()) {
@@ -174,6 +182,10 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_AC_ADDITEMTOROLE:
                     if (args.length == 3) {
                         try {
+                            if(args[1].equals("administrator")){
+                                console.println("The administrator role has already access to all items.");
+                                return;
+                            }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
                                 System.out.println("The itemName " + args[2] + " does not exist");
@@ -206,6 +218,10 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_AC_RMVITEMTOROLE:
                     if (args.length == 3) {
                         try {
+                            if(args[1].equals("administrator")){
+                                console.println("We cannot remove access to items for the administrator role.");
+                                return;
+                            }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
                                 System.out.println("The itemName " + args[2] + " does not exist");
@@ -290,20 +306,24 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
      * @param items the set of items
      */
     private void printRoleWithItems(String role, Set<String> items) {
-
-        StringBuilder itemsToString = new StringBuilder("(");
-        int i = 0;
-        for (String item : items) {
-            if (i == 0) {
-                itemsToString.append(item);
-                i = 1;
-            } else {
-                itemsToString.append(", ").append(item);
-            }
+        if(role.equals("administrator")){
+            System.out.println("administrator : (has access to all items)");
         }
-        itemsToString.append(")");
+        else {
+            StringBuilder itemsToString = new StringBuilder("(");
+            int i = 0;
+            for (String item : items) {
+                if (i == 0) {
+                    itemsToString.append(item);
+                    i = 1;
+                } else {
+                    itemsToString.append(", ").append(item);
+                }
+            }
+            itemsToString.append(")");
 
-        System.out.println(role + ": " + itemsToString);
+            System.out.println(role + ": " + itemsToString);
+        }
     }
 
     /**

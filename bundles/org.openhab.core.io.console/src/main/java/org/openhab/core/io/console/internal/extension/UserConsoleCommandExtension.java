@@ -47,7 +47,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_CHANGEROLE = "changeRole";
     private static final String SUBCMD_LISTROLES = "listRoles";
     private static final String SUBCMD_ADDROLE = "addRole";
-    private static final String SUBCMD_REMOVEROLE = "removeRole";
+    private static final String SUBCMD_REMOVEROLE = "rmvRole";
 
     private static final String SUBCMD_CHANGEPASSWORD = "changePassword";
     private static final String SUBCMD_LISTAPITOKENS = "listApiTokens";
