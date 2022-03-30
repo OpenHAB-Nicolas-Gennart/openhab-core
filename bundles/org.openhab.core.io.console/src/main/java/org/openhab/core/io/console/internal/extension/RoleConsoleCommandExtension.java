@@ -119,6 +119,12 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                     if (args.length == 3) {
                         try {
                             roleRegistry.changeRole(args[1], args[2]);
+                            // We change the role for the user too.
+                            for (User user : userRegistry.getAll()) {
+                                if (user.getRoles().contains(args[1])) {
+                                    userRegistry.changeRole(user, args[1], args[2]);
+                                }
+                            }
                             console.println(
                                     "The role (" + args[1] + ") has been changed to the role (" + args[2] + ")");
                         } catch (IllegalArgumentException ie) {
@@ -150,6 +156,12 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                     if (args.length == 2) {
                         try {
                             roleRegistry.removeRole(args[1]);
+                            // We remove the role for the user too.
+                            for (User user : userRegistry.getAll()) {
+                                if (user.getRoles().contains(args[1])) {
+                                    userRegistry.removeRole(user, args[1]);
+                                }
+                            }
                         } catch (IllegalArgumentException ie) {
                             logger.warn("IllegalArgumentException: ", ie);
                             console.println("Look at your logs with the command <log:tail>.");

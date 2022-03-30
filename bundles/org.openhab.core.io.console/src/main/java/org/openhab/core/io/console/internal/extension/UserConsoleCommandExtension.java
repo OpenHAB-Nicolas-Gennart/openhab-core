@@ -17,6 +17,7 @@ package org.openhab.core.io.console.internal.extension;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.*;
@@ -180,6 +181,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                         if (roleRegistry.get(args[2]) == null) {
                                             console.println(
                                                     "The role " + args[2] + " does not exist in the RoleRegistry.");
+                                            console.println("The available roles in the RoleRegistry are as follows:");
+                                            printSet(roleRegistry.getAll().stream().map(Role::getRole)
+                                                    .collect(Collectors.toSet()));
                                             return;
                                         }
                                         if (roleRegistry.get(args[3]) == null) {
@@ -220,6 +224,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             if (checkAdministratorCredential(console)) {
                                 if (roleRegistry.get(args[2]) == null) {
                                     console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
+                                    console.println("The available roles in the RoleRegistry are as follows:");
+                                    printSet(roleRegistry.getAll().stream().map(Role::getRole)
+                                            .collect(Collectors.toSet()));
                                     return;
                                 }
                                 if (userRegistry.addRole(existingUser, args[2])) {
@@ -249,6 +256,9 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 if (checkAdministratorCredential(console)) {
                                     if (roleRegistry.get(args[2]) == null) {
                                         console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
+                                        console.println("The available roles in the RoleRegistry are as follows:");
+                                        printSet(roleRegistry.getAll().stream().map(Role::getRole)
+                                                .collect(Collectors.toSet()));
                                         return;
                                     }
                                     if (userRegistry.removeRole(existingUser, args[2])) {
@@ -448,6 +458,25 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
         console.println("The users with the administrator role are the following:");
         printUsersWithAdministratorRole(console);
         console.println("Or run the command <exit> to quit");
+    }
+
+    /**
+     * Print the set of string to the console.
+     *
+     * @param prints Set of string to print.
+     */
+    private void printSet(Set<String> prints) {
+        StringBuilder out = new StringBuilder("");
+        int c = 0;
+        for (String print : prints) {
+            if (c == 0) {
+                out.append(print);
+                c = 1;
+            } else {
+                out.append(", ").append(print);
+            }
+        }
+        System.out.println(out);
     }
 
     /**
