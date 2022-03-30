@@ -122,8 +122,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 console.println("The administrator role cannot be change");
                                 return;
                             }
-                            if(args[1].equals("user") || args[2].equals("user")){
-                                console.println("The user's role cannot be changed because this role is used by default for users who do not have access to any items.");
+                            if (args[1].equals("user") || args[2].equals("user")) {
+                                console.println(
+                                        "The user's role cannot be changed because this role is used by default for users who do not have access to any items.");
                             }
                             roleRegistry.changeRole(args[1], args[2]);
                             // We change the role for the user too.
@@ -148,8 +149,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_ADDROLE:
                     if (args.length == 2) {
                         try {
-                            if(args[1].equals("user")){
-                                console.println("The user's role cannot be added because this role is used by default for users who do not have access to any items.");
+                            if (args[1].equals("user")) {
+                                console.println(
+                                        "The user's role cannot be added because this role is used by default for users who do not have access to any items.");
                             }
                             roleRegistry.addRole(args[1]);
                         } catch (IllegalArgumentException ie) {
@@ -192,8 +194,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 console.println("The administrator role has already access to all items.");
                                 return;
                             }
-                            if(args[1].equals("user")){
-                                console.println("The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
+                            if (args[1].equals("user")) {
+                                console.println(
+                                        "The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
                             }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
@@ -231,8 +234,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                                 console.println("We cannot remove access to items for the administrator role.");
                                 return;
                             }
-                            if(args[1].equals("user")){
-                                console.println("The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
+                            if (args[1].equals("user")) {
+                                console.println(
+                                        "The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
                             }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
@@ -320,11 +324,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
     private void printRoleWithItems(String role, Set<String> items) {
         if (role.equals("administrator")) {
             System.out.println("administrator : (has access to all items)");
-        }
-        else if (role.equals("user")){
+        } else if (role.equals("user")) {
             System.out.println("user : (has no access)");
-        }
-        else {
+        } else {
             StringBuilder itemsToString = new StringBuilder("(");
             int i = 0;
             for (String item : items) {

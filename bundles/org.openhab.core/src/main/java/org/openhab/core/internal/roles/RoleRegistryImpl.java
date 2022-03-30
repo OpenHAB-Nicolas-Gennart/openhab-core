@@ -15,6 +15,7 @@ package org.openhab.core.internal.roles;
 import java.util.HashSet;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.openhab.core.items.ItemRegistry;
@@ -29,6 +30,11 @@ import org.osgi.service.component.annotations.*;
 public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvider> implements RoleRegistry {
 
     private final ItemRegistry itemRegistry;
+
+    public RoleRegistryImpl(@Nullable Class<RoleProvider> providerClazz, ItemRegistry itemRegistry) {
+        super(providerClazz);
+        this.itemRegistry = itemRegistry;
+    }
 
     /**
      * Constructor.

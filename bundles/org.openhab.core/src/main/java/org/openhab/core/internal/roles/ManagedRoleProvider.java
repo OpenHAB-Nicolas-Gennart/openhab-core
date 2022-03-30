@@ -13,20 +13,13 @@
 package org.openhab.core.internal.roles;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.core.auth.ManagedUser;
 import org.openhab.core.auth.Role;
 import org.openhab.core.common.registry.DefaultAbstractManagedProvider;
-import org.openhab.core.common.registry.ManagedProvider;
 import org.openhab.core.storage.StorageService;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-/**
- * A {@link ManagedProvider} for {@link ManagedUser} entities
- *
- * @author Yannick Schaus - initial contribution
- */
 @NonNullByDefault
 @Component(service = ManagedRoleProvider.class, immediate = true)
 public class ManagedRoleProvider extends DefaultAbstractManagedProvider<Role, String> {
