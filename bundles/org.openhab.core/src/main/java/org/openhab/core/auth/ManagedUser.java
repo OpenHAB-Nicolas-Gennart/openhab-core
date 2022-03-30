@@ -170,7 +170,6 @@ public class ManagedUser implements User {
         this.apiTokens = apiTokens;
     }
 
-
     @Override
     public String toString() {
         return name + " (" + String.join(", ", roles.stream().toArray(String[]::new)) + ")";

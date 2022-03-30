@@ -275,7 +275,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                     "The user " + managedUser.getName() + " has access to the following items:");
                             for (String role : managedUser.getRoles()) {
                                 ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
-                                if(managedRole != null){
+                                if (managedRole != null) {
                                     printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                                 }
                             }
@@ -295,7 +295,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                     System.out.println("Here you can see the role " + args[2]
                                             + " and his actual authorized item(s) : ");
                                     ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
-                                    if(managedRole != null){
+                                    if (managedRole != null) {
                                         printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                                     }
                                 } catch (IllegalArgumentException iae) {
@@ -323,7 +323,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                     System.out.println("Here you can see the role " + args[2]
                                             + " and his actual authorized item(s) : ");
                                     ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
-                                    if(managedRole != null){
+                                    if (managedRole != null) {
                                         printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                                     }
                                 } catch (IllegalArgumentException iae) {

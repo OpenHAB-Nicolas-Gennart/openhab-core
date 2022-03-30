@@ -135,6 +135,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             return getAll();
         }
         Set<Item> items = new HashSet<>();
+
         /*
          * for (String role : roles) {
          * ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
@@ -150,6 +151,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
          * }
          * }
          */
+
         return items;
     }
 

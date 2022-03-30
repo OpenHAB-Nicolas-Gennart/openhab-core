@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.core.internal.auth;
+package org.openhab.core.internal.roles;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.auth.ManagedUser;

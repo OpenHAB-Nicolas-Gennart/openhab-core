@@ -1,4 +1,16 @@
-package org.openhab.core.internal.auth;
+/**
+ * Copyright (c) 2010-2022 Contributors to the openHAB project
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.openhab.core.internal.roles;
 
 import java.util.HashSet;
 
@@ -9,6 +21,9 @@ import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.*;
 
+/**
+ * @author Nicolas Gennart
+ */
 @NonNullByDefault
 @Component(service = RoleRegistry.class, immediate = true)
 public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvider> implements RoleRegistry {
