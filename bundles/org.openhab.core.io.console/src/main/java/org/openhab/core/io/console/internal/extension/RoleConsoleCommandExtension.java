@@ -118,9 +118,12 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_CHANGEROLE:
                     if (args.length == 3) {
                         try {
-                            if(args[1].equals("administrator")){
+                            if (args[1].equals("administrator")) {
                                 console.println("The administrator role cannot be change");
                                 return;
+                            }
+                            if(args[1].equals("user") || args[2].equals("user")){
+                                console.println("The user's role cannot be changed because this role is used by default for users who do not have access to any items.");
                             }
                             roleRegistry.changeRole(args[1], args[2]);
                             // We change the role for the user too.
@@ -145,6 +148,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_ADDROLE:
                     if (args.length == 2) {
                         try {
+                            if(args[1].equals("user")){
+                                console.println("The user's role cannot be added because this role is used by default for users who do not have access to any items.");
+                            }
                             roleRegistry.addRole(args[1]);
                         } catch (IllegalArgumentException ie) {
                             logger.warn("IllegalArgumentException: ", ie);
@@ -159,7 +165,7 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_REMOVEROLE:
                     if (args.length == 2) {
                         try {
-                            if(args[1].equals("administrator")){
+                            if (args[1].equals("administrator")) {
                                 console.println("The administrator role cannot be remove");
                                 return;
                             }
@@ -182,9 +188,12 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_AC_ADDITEMTOROLE:
                     if (args.length == 3) {
                         try {
-                            if(args[1].equals("administrator")){
+                            if (args[1].equals("administrator")) {
                                 console.println("The administrator role has already access to all items.");
                                 return;
+                            }
+                            if(args[1].equals("user")){
+                                console.println("The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
                             }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
@@ -218,9 +227,12 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_AC_RMVITEMTOROLE:
                     if (args.length == 3) {
                         try {
-                            if(args[1].equals("administrator")){
+                            if (args[1].equals("administrator")) {
                                 console.println("We cannot remove access to items for the administrator role.");
                                 return;
+                            }
+                            if(args[1].equals("user")){
+                                console.println("The user's role cannot be managed because this role is used by default for users who do not have access to any items.");
                             }
                             Set<String> items = getAuthorizedItems(args[2]);
                             if (items.size() == 0) {
@@ -306,8 +318,11 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
      * @param items the set of items
      */
     private void printRoleWithItems(String role, Set<String> items) {
-        if(role.equals("administrator")){
+        if (role.equals("administrator")) {
             System.out.println("administrator : (has access to all items)");
+        }
+        else if (role.equals("user")){
+            System.out.println("user : (has no access)");
         }
         else {
             StringBuilder itemsToString = new StringBuilder("(");
