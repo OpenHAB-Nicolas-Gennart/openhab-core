@@ -48,7 +48,7 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
      * @param newRole new role that will be replace
      *            Change the role of a user. If the user has more than one role, replace only the role to be replaced.
      */
-    public void changeRole(User user, String oldRole, String newRole);
+    public void changeRole(String user, String oldRole, String newRole);
 
     /**
      * Add a role for an {@link User} in this registry.
@@ -57,7 +57,7 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
      * @param role role to be added
      * @return return true if the role is added and false otherwise.
      */
-    public boolean addRole(User user, String role);
+    public boolean addRole(String user, String role);
 
     /**
      * Remove the specific role of the user
@@ -66,7 +66,7 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
      * @param role role to be added
      * @return return true if the role is removed and false otherwise.
      */
-    public boolean removeRole(User user, String role);
+    public boolean removeRole(String user, String role);
 
     /**
      * Checks if in the user registry there is a user with the role specified in the argument.
@@ -83,6 +83,32 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
      * @return the number of time the role is present in the user registry
      */
     public int countRole(String role);
+
+    /**
+     *
+     * Change the group for an {@link User} in this registry.
+     *
+     * @param user information of the user
+     * @param oldGroup old group to be replaced
+     * @param newGroup new group that will be replaced
+     */
+    public void changeGroup(String user, String oldGroup, String newGroup);
+
+    /**
+     * Add the group to the user in the registry, if the group and the user exist.
+     *
+     * @param user that will receive a new group.
+     * @param group to add to the specified user.
+     */
+    public boolean addGroup(String user , String group);
+
+    /**
+     * Remove the group to the user in the registry, if the group and teh user exist.
+     *
+     * @param user  that will remove group.
+     * @param group to remove to the specified group.
+     */
+    public boolean removeGroup(String user, String group);
 
     /**
      * Change the password for an {@link User} in this registry. The implementation receives the new password and is

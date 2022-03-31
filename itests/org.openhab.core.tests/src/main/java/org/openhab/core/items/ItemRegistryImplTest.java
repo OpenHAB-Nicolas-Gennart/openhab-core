@@ -107,7 +107,7 @@ public class ItemRegistryImplTest extends JavaTest {
         itemProvider.add(cameraItem4);
 
         // setup ItemRegistryImpl with necessary dependencies:
-        itemRegistry = new ItemRegistryImpl(mock(MetadataRegistry.class), mock(UserRegistryImpl.class), mock(RoleRegistry.class)) {
+        itemRegistry = new ItemRegistryImpl(mock(MetadataRegistry.class), mock(UserRegistryImpl.class), mock(RoleRegistry.class), mock(GroupRegistry.class)) {
             {
                 addProvider(itemProvider);
                 setManagedProvider(itemProvider);

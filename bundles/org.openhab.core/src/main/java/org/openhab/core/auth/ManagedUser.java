@@ -29,6 +29,8 @@ public class ManagedUser implements User {
     private String passwordHash;
     private String passwordSalt;
     private Set<String> roles = new HashSet<>();
+    private Set<String> groups = new HashSet<>();
+
     private @Nullable PendingToken pendingToken = null;
     private List<UserSession> sessions = new ArrayList<>();
     private List<UserApiToken> apiTokens = new ArrayList<>();
@@ -114,6 +116,14 @@ public class ManagedUser implements User {
      */
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public Set<String> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(Set<String> groups) {
+        this.groups = groups;
     }
 
     /**

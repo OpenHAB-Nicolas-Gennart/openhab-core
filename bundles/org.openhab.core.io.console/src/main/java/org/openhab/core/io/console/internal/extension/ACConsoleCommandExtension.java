@@ -27,19 +27,17 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
     private static final String SUBCMD_ADDGROUP = "addGroup";
     private static final String SUBCMD_REMOVEGROUP = "rmvGroup";
 
-    private static final String SUBCMD_AC_ADDUSERTOGROUP = "addUserToGroup";
-    private static final String SUBCMD_AC_RMVUSERTOGROUP = "rmvUserToGroup";
 
-    private static final String SUBCMD_AC_ADDROLETOGROUP = "addRoleToGroup";
-    private static final String SUBCMD_AC_RMVROLETOGROUP = "rmvRoleToGroup";
+    private static final String SUBCMD_ADDROLETOGROUP = "addRoleToGroup";
+    private static final String SUBCMD_RMVROLETOGROUP = "rmvRoleToGroup";
 
     private static final String SUBCMD_LISTROLES = "listRoles";
     private static final String SUBCMD_CHANGEROLE = "changeRole";
     private static final String SUBCMD_ADDROLE = "addRole";
     private static final String SUBCMD_REMOVEROLE = "rmvRole";
 
-    private static final String SUBCMD_AC_ADDITEMTOROLE = "addItemToRole";
-    private static final String SUBCMD_AC_RMVITEMTOROLE = "rmvItemToRole";
+    private static final String SUBCMD_ADDITEMTOROLE = "addItemToRole";
+    private static final String SUBCMD_RMVITEMTOROLE = "rmvItemToRole";
 
     private final Logger logger = LoggerFactory.getLogger(ACConsoleCommandExtension.class);
 
@@ -65,30 +63,27 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
 
                 buildCommandUsage(SUBCMD_LISTGROUPS,
                         "lists the groups and the users that contain them in the registry"),
-                buildCommandUsage(SUBCMD_CHANGEGROUP + " <oldRole> <newRole>",
+                buildCommandUsage(SUBCMD_CHANGEGROUP + " <oldGroup> <newGroup>",
                         "changes the group name in the registry"),
-                buildCommandUsage(SUBCMD_ADDGROUP + " <role>", "adds the group in the registry"),
-                buildCommandUsage(SUBCMD_REMOVEGROUP + " <role>", "removes the grpup in the registry"),
+                buildCommandUsage(SUBCMD_ADDGROUP + " <group>", "adds the group in the registry"),
+                buildCommandUsage(SUBCMD_REMOVEGROUP + " <group>", "removes the group in the registry"),
 
-                buildCommandUsage(SUBCMD_AC_ADDUSERTOGROUP + " <group> <userId>",
-                        "adds the user in the specified group."),
-                buildCommandUsage(SUBCMD_AC_RMVUSERTOGROUP + " <group> <userId>",
-                        "removes the user in the specified group."),
-
-                buildCommandUsage(SUBCMD_AC_ADDROLETOGROUP + " <group> <role>",
+                buildCommandUsage(SUBCMD_ADDROLETOGROUP + " <group> <role>",
                         "adds the specified role in the specified group"),
-                buildCommandUsage(SUBCMD_AC_RMVROLETOGROUP + " <group> <role>",
+                buildCommandUsage(SUBCMD_RMVROLETOGROUP + " <group> <role>",
                         "removes the specified role in the specified group"),
 
-                buildCommandUsage(SUBCMD_AC_ADDITEMTOROLE + " <role> <itemName>",
-                        "adds the specified item to the role"),
-                buildCommandUsage(SUBCMD_AC_RMVITEMTOROLE + " <role> <itemName>",
-                        "removes the specified item to the role"),
 
                 buildCommandUsage(SUBCMD_LISTROLES, "lists the roles in the registry"),
                 buildCommandUsage(SUBCMD_CHANGEROLE + " <oldRole> <newRole>", "changes the role name in the registry"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <role>", "adds the role in the registry"),
-                buildCommandUsage(SUBCMD_REMOVEROLE + " <role>", "removes the role in the registry"));
+                buildCommandUsage(SUBCMD_REMOVEROLE + " <role>", "removes the role in the registry"),
+
+                buildCommandUsage(SUBCMD_ADDITEMTOROLE + " <role> <itemName>",
+                        "adds the specified item to the role"),
+                buildCommandUsage(SUBCMD_RMVITEMTOROLE + " <role> <itemName>",
+                        "removes the specified item to the role"));
+
     }
 
     @Override
@@ -102,13 +97,126 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                         HashSet<ManagedRole> managedRoles = (HashSet<ManagedRole>) roles.stream()
                                 .map(role -> (ManagedRole) role).collect(Collectors.toSet());
 
+                        Collection<Group> groups = groupRegistry.getAll();
+                        HashSet<ManagedGroup> managedGroups = (HashSet<ManagedGroup>) groups.stream().map(group -> (ManagedGroup) group).collect(Collectors.toSet());
+
+                        System.out.println("----------------------------------");
                         System.out.println("<ROLE-BASED ACCESS CONTROL MODEL>");
+                        System.out.println("----------------------------------");
+                        System.out.println("GROUPS");
+                        for(ManagedGroup managedGroup : managedGroups){
+                            printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
+                        }
+                        System.out.println("ROLES");
                         for (ManagedRole managedRole : managedRoles) {
                             printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                         }
 
                     } else {
                         console.printUsage(findUsage(SUBCMD_LISTAC));
+                    }
+                    break;
+                case SUBCMD_LISTGROUPS:
+                    if (args.length == 1) {
+                        printAllGroups();
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_LISTGROUPS));
+                    }
+                    break;
+                case SUBCMD_CHANGEGROUP:
+                    if (args.length == 3) {
+                        try {
+                            // We change the group for the user.
+                            for (User user : userRegistry.getAll()) {
+                                if (user.getGroups().contains(args[1])) {
+                                    userRegistry.changeGroup(user.getUID(), args[1], args[2]);
+                                }
+                            }
+
+                            groupRegistry.changeGroup(args[1], args[2]);
+
+                            console.println(
+                                    "The group (" + args[1] + ") has been changed to the group (" + args[2] + ")");
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                            printAllRoles();
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_CHANGEGROUP));
+                    }
+
+                    break;
+                case SUBCMD_ADDGROUP:
+                    if (args.length == 2) {
+                        try {
+                            groupRegistry.addGroup(args[1]);
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                            printAllRoles();
+                        }
+
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_ADDGROUP));
+                    }
+                    break;
+                case SUBCMD_REMOVEGROUP:
+                    if (args.length == 2) {
+                        try {
+                            // We remove the group for the users.
+                            for (User user : userRegistry.getAll()) {
+                                if (user.getGroups().contains(args[1])) {
+                                    userRegistry.removeGroup(user.getUID(), args[1]);
+                                }
+                            }
+
+                            groupRegistry.removeGroup(args[1]);
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                            printAllRoles();
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_REMOVEGROUP));
+                    }
+                    break;
+                case SUBCMD_ADDROLETOGROUP:
+                    if (args.length == 3) {
+                        try {
+                            groupRegistry.addRoleToGroup(args[1], args[2]);
+                            System.out.println("The group is added!");
+                            System.out.println("Here you can see the group " + args[2]
+                                    + " and his actual role(s) : ");
+                            ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(args[1]);
+                            if (managedGroup != null) {
+                                printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
+                            }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_ADDROLETOGROUP));
+                    }
+                    break;
+                case SUBCMD_RMVROLETOGROUP:
+                    if (args.length == 3) {
+                        try {
+                            groupRegistry.removeRoleToGroup(args[1], args[2]);
+                            System.out.println("The group is rmoved!");
+                            System.out.println("Here you can see the group " + args[2]
+                                    + " and his actual role(s) : ");
+                            ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(args[1]);
+                            if (managedGroup != null) {
+                                printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
+                            }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_RMVROLETOGROUP));
                     }
                     break;
                 case SUBCMD_LISTROLES:
@@ -129,13 +237,15 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                                 console.println(
                                         "The user's role cannot be changed because this role is used by default for users who do not have access to any items.");
                             }
-                            roleRegistry.changeRole(args[1], args[2]);
-                            // We change the role for the user too.
+                            // We change the role for the user.
                             for (User user : userRegistry.getAll()) {
                                 if (user.getRoles().contains(args[1])) {
-                                    userRegistry.changeRole(user, args[1], args[2]);
+                                    userRegistry.changeRole(user.getUID(), args[1], args[2]);
                                 }
                             }
+
+                            roleRegistry.changeRole(args[1], args[2]);
+
                             console.println(
                                     "The role (" + args[1] + ") has been changed to the role (" + args[2] + ")");
                         } catch (IllegalArgumentException ie) {
@@ -148,7 +258,6 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                     }
 
                     break;
-
                 case SUBCMD_ADDROLE:
                     if (args.length == 2) {
                         try {
@@ -174,13 +283,14 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                                 console.println("The administrator role cannot be remove");
                                 return;
                             }
-                            roleRegistry.removeRole(args[1]);
                             // We remove the role for the user too.
                             for (User user : userRegistry.getAll()) {
                                 if (user.getRoles().contains(args[1])) {
-                                    userRegistry.removeRole(user, args[1]);
+                                    userRegistry.removeRole(user.getUID(), args[1]);
                                 }
                             }
+
+                            roleRegistry.removeRole(args[1]);
                         } catch (IllegalArgumentException ie) {
                             logger.warn("IllegalArgumentException: ", ie);
                             console.println("Look at your logs with the command <log:tail>.");
@@ -190,7 +300,7 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
                     }
                     break;
-                case SUBCMD_AC_ADDITEMTOROLE:
+                case SUBCMD_ADDITEMTOROLE:
                     if (args.length == 3) {
                         try {
                             if (args[1].equals("administrator")) {
@@ -230,7 +340,7 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
                     }
                     break;
-                case SUBCMD_AC_RMVITEMTOROLE:
+                case SUBCMD_RMVITEMTOROLE:
                     if (args.length == 3) {
                         try {
                             if (args[1].equals("administrator")) {
@@ -266,9 +376,6 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                     }
 
                     break;
-                case SUBCMD_ADDGROUP:
-                    groupRegistry.changeGroup("", "");
-                    break;
                 default:
                     console.println("Unknown command '" + subCommand + "'");
                     printUsage(console);
@@ -289,12 +396,32 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
         int c = 0;
         out.append("(");
         for (Role role : rolesRegistry) {
-
             if (c == 0) {
                 out.append(role.getRole());
                 c = 1;
             } else {
                 out.append(",").append(role.getRole());
+            }
+
+        }
+        out.append(")");
+        System.out.println(out);
+    }
+
+    /**
+     * Print all the groups in the GroupRegistry.
+     */
+    private void printAllGroups() {
+        Collection<Group> groupsRegistry = groupRegistry.getAll();
+        StringBuilder out = new StringBuilder("the groups in the GroupRegistry are the followings: ");
+        int c = 0;
+        out.append("(");
+        for (Group group : groupsRegistry) {
+            if (c == 0) {
+                out.append(group.getGroup());
+                c = 1;
+            } else {
+                out.append(",").append(group.getGroup());
             }
 
         }
@@ -347,6 +474,29 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
 
             System.out.println(role + ": " + itemsToString);
         }
+    }
+
+    /**
+     * Print the group and all the roles to the console.
+     *
+     * @param group the specified group
+     * @param roles the set of roles
+     */
+    private void printGroupWithRoles(String group, Set<String> roles) {
+
+            StringBuilder rolesToString = new StringBuilder("(");
+            int i = 0;
+            for (String role : roles) {
+                if (i == 0) {
+                    rolesToString.append(role);
+                    i = 1;
+                } else {
+                    rolesToString.append(", ").append(role);
+                }
+            }
+            rolesToString.append(")");
+
+            System.out.println(group + ": " + rolesToString);
     }
 
     /**

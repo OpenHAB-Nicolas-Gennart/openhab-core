@@ -73,13 +73,17 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     private @Nullable UnitProvider unitProvider;
     private @Nullable ItemStateConverter itemStateConverter;
     private final UserRegistry userRegistry;
+    private final RoleRegistry roleRegistry;
+    private final GroupRegistry groupRegistry;
 
     @Activate
     public ItemRegistryImpl(final @Reference MetadataRegistry metadataRegistry,
-            final @Reference UserRegistry userRegistry, final @Reference RoleRegistry roleRegistry) {
+            final @Reference UserRegistry userRegistry, final @Reference RoleRegistry roleRegistry, final @Reference GroupRegistry groupRegistry) {
         super(ItemProvider.class);
         this.metadataRegistry = metadataRegistry;
         this.userRegistry = userRegistry;
+        this.roleRegistry = roleRegistry;
+        this.groupRegistry = groupRegistry;
     }
 
     @Override
@@ -119,7 +123,8 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
     }
 
     @Override
-    public Collection<Item> getAllItemsWithRoles(String principal, Set<String> itemNames) {
+    public Collection<Item> getAllItemsWithRoles(String principal) {
+        Set<String> itemNames = getItemNames(principal);
         if (principal.isEmpty()) {
             return getAll();
         }
@@ -147,6 +152,37 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         return items;
     }
 
+    /**
+     * Return all the items name that correspond to the roles of the principal
+     *
+     * @param principal that want its itemNames
+     * @return set of itemNames
+     */
+    public Set<String> getItemNames(String principal) {
+        ManagedUser managedUser = (ManagedUser) userRegistry.get(principal);
+        if (managedUser == null) {
+            return new HashSet<>();
+        }
+        Set<String> groups = managedUser.getGroups();
+        Set<String> roles = managedUser.getRoles();
+
+        for (String group : groups){
+            ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(group);
+            if(managedGroup != null){
+                roles.addAll(managedGroup.getRoles());
+            }
+        }
+
+        Set<String> itemNames = new HashSet<>();
+        for (String role : roles) {
+            ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
+            if (managedRole != null) {
+                itemNames.addAll(managedRole.getItemNames());
+            }
+        }
+        return itemNames;
+    }
+
     @Override
     public Set<String> getAllItemNames() {
         return getAll().stream().map(Item::getName).collect(Collectors.toSet());
@@ -160,11 +196,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
             if (item.getType().equals(type)) {
                 matchedItems.add(item);
             }
-            System.out.println("PRINT ITEM OF TYPE 1!!!!");
-            System.out.println(item);
         }
-
-        System.out.println(matchedItems);
         return matchedItems;
     }
 

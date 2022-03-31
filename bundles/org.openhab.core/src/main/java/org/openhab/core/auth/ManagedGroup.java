@@ -7,8 +7,6 @@ public class ManagedGroup implements Group {
 
     private final String group;
 
-    private Set<String> users = new HashSet<>();
-
     private Set<String> roles = new HashSet<>();
 
     public ManagedGroup(String group) {
@@ -23,14 +21,6 @@ public class ManagedGroup implements Group {
     @Override
     public String getUID() {
         return group;
-    }
-
-    public Set<String> getUsers() {
-        return users;
-    }
-
-    public void setUsers(Set<String> users) {
-        this.users = users;
     }
 
     public Set<String> getRoles() {

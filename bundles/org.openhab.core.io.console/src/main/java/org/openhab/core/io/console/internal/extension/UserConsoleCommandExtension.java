@@ -49,6 +49,11 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_ADDROLE = "addRole";
     private static final String SUBCMD_REMOVEROLE = "rmvRole";
 
+    private static final String SUBCMD_ADDGROUP = "addGroup";
+    private static final String SUBCMD_LISTGROUPS = "listGroups";
+    private static final String SUBCMD_RMVGROUP = "rmvGroup";
+    private static final String SUBCMD_CHANGEGROUP = "changeGroup";
+
     private static final String SUBCMD_CHANGEPASSWORD = "changePassword";
     private static final String SUBCMD_LISTAPITOKENS = "listApiTokens";
     private static final String SUBCMD_ADDAPITOKEN = "addApiToken";
@@ -83,6 +88,13 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         "changes the specific role of a user with a new one"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "adds the specified role to the specified user"),
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "removes the specified role of the user"),
+                buildCommandUsage(SUBCMD_LISTROLES + " <userId>", "lists the roles of the userID"),
+                buildCommandUsage(SUBCMD_CHANGEGROUP + " <userId> <oldGroup> <newGroup>",
+                        "changes the specific group of a user with a new one"),
+                buildCommandUsage(SUBCMD_ADDGROUP + " <userId> <group> ",
+                        "adds the group to the user."),
+                buildCommandUsage(SUBCMD_RMVGROUP + " <userId> <group> ",
+                        "removes the group to the user."),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
                 buildCommandUsage(SUBCMD_ADDAPITOKEN + " <userId> <tokenName> <scope>",
@@ -130,6 +142,7 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                                     console.println(
                                             "There must always be at least one user with the administrator role, so we can't remove it.");
                                 }
+                                userRegistry.remove(user.getUID());
                                 console.println("User removed.");
                             } else {
                                 console.println("You did not put a correct administrator credential.");
@@ -172,44 +185,19 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     break;
                 case SUBCMD_CHANGEROLE:
                     if (args.length == 4) {
-                        User existingUser = userRegistry.get(args[1]);
-                        if (existingUser == null) {
-                            console.println("The user doesn't exist, here you can find the available users:");
-                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
-                            return;
-                        } else {
-                            try {
-                                if (args[2].equals("administrator") || args[3].equals("administrator")) {
-                                    if (checkAdministratorCredential(console)) {
-                                        if (roleRegistry.get(args[2]) == null) {
-                                            console.println(
-                                                    "The role " + args[2] + " does not exist in the RoleRegistry.");
-                                            console.println("The available roles in the RoleRegistry are as follows:");
-                                            printSet(roleRegistry.getAll().stream().map(Role::getRole)
-                                                    .collect(Collectors.toSet()));
-                                            return;
-                                        }
-                                        if (roleRegistry.get(args[3]) == null) {
-                                            console.println(
-                                                    "The role " + args[3] + "does not exist in the RoleRegistry.");
-                                            return;
-                                        }
-                                        userRegistry.changeRole(existingUser, args[2], args[3]);
-                                        console.println("The role (" + args[2] + ") of the user " + args[1]
-                                                + " has been changed to the role (" + args[3] + ")");
-                                    } else {
-                                        console.println("You did not put a correct administrator credential.");
-                                    }
-                                } else {
-                                    userRegistry.changeRole(existingUser, args[2], args[3]);
-                                    console.println("The role (" + args[2] + ") of the user " + args[1]
-                                            + " has been changed to the role (" + args[3] + ")");
-                                }
-                            } catch (IllegalArgumentException ie) {
-                                logger.warn("IllegalArgumentException: ", ie);
-                                console.println("Look at your logs with the command <log:tail>.");
+                        try {
+                            if (checkAdministratorCredential(console)) {
+                                userRegistry.changeRole(args[1], args[2], args[3]);
+                                console.println("The role (" + args[2] + ") of the user " + args[1]
+                                        + " has been changed to the role (" + args[3] + ")");
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
                             }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
                         }
+
                     } else {
                         console.printUsage(findUsage(SUBCMD_CHANGEROLE));
                     }
@@ -218,21 +206,8 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
 
                 case SUBCMD_ADDROLE:
                     if (args.length == 3) {
-                        User existingUser = userRegistry.get(args[1]);
-                        if (existingUser == null) {
-                            console.println("The user doesn't exist, here you can find the available users:");
-                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
-                            return;
-                        } else {
                             if (checkAdministratorCredential(console)) {
-                                if (roleRegistry.get(args[2]) == null) {
-                                    console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
-                                    console.println("The available roles in the RoleRegistry are as follows:");
-                                    printSet(roleRegistry.getAll().stream().map(Role::getRole)
-                                            .collect(Collectors.toSet()));
-                                    return;
-                                }
-                                if (userRegistry.addRole(existingUser, args[2])) {
+                                if (userRegistry.addRole(args[1], args[2])) {
                                     console.println(
                                             "The role " + args[2] + " of the user " + args[1] + " has been added.");
                                 } else {
@@ -242,48 +217,120 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             } else {
                                 console.println("You did not put a correct administrator credential.");
                             }
-                        }
+
                     } else {
                         console.printUsage(findUsage(SUBCMD_ADDROLE));
                     }
                     break;
                 case SUBCMD_REMOVEROLE:
                     if (args.length == 3) {
-                        User existingUser = userRegistry.get(args[1]);
-                        if (existingUser == null) {
-                            console.println("The user doesn't exist, here you can find the available users:");
-                            userRegistry.getAll().forEach(user -> console.println(user.toString()));
-                            return;
-                        } else {
-                            try {
-                                if (checkAdministratorCredential(console)) {
-                                    if (roleRegistry.get(args[2]) == null) {
-                                        console.println("The role " + args[2] + " does not exist in the RoleRegistry.");
-                                        console.println("The available roles in the RoleRegistry are as follows:");
-                                        printSet(roleRegistry.getAll().stream().map(Role::getRole)
-                                                .collect(Collectors.toSet()));
-                                        return;
-                                    }
-                                    if (userRegistry.removeRole(existingUser, args[2])) {
-                                        console.println("The role " + args[2] + " of the user " + args[1]
-                                                + " has been removed.");
-                                    } else {
-                                        console.println(
-                                                "The role " + args[2] + " of the user " + args[1] + " doesn't exist!");
-                                    }
+                        try {
+                            if (checkAdministratorCredential(console)) {
+                                if (userRegistry.removeRole(args[1], args[2])) {
+                                    console.println("The role " + args[2] + " of the user " + args[1]
+                                            + " has been removed.");
                                 } else {
-                                    console.println("You did not put a correct administrator credential.");
+                                    console.println(
+                                            "The role " + args[2] + " of the user " + args[1] + " doesn't exist!");
                                 }
-                            } catch (IllegalArgumentException ie) {
-                                logger.warn("IllegalArgumentException: ", ie);
-                                console.println("Look at your logs with the command <log:tail>.");
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
                             }
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
                         }
+
                     } else {
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
                     }
                     break;
+                case SUBCMD_LISTGROUPS:
+                    if (args.length == 1) {
+                        Collection<User> usersRegistry = userRegistry.getAll();
+                        HashSet<ManagedUser> managedUsers = (HashSet<ManagedUser>) usersRegistry.stream().map(user -> (ManagedUser) user).collect(Collectors.toSet());
+                        for (ManagedUser managedUser : managedUsers) {
+                            Set<String> groups = managedUser.getGroups();
+                            StringBuilder out;
+                            if (groups.size() == 1) {
+                                out = new StringBuilder("The username " + managedUser.getName() + " has the group: ");
+                                for (String group : groups) {
+                                    out.append(group);
+                                }
+                            } else {
+                                out = new StringBuilder("The username " + managedUser.getName() + " has these groups: (");
+                                int i = 0;
+                                for (String group : groups) {
+                                    if (i == groups.size() - 1) {
+                                        out.append(group).append(")");
+                                    } else {
+                                        out.append(group).append(", ");
+                                    }
+                                    i++;
+                                }
+                            }
+                            console.println(out.toString());
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_LISTGROUPS));
+                    }
+                    break;
+                case SUBCMD_CHANGEGROUP:
+                    if (args.length == 4) {
+                        try {
+                            if (checkAdministratorCredential(console)) {
+                                userRegistry.changeGroup(args[1], args[2], args[3]);
+                                console.println("The group (" + args[2] + ") of the user " + args[1]
+                                        + " has been changed to the group (" + args[3] + ")");
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
+                            }
 
+                        } catch (IllegalArgumentException ie) {
+                            logger.warn("IllegalArgumentException: ", ie);
+                            console.println("Look at your logs with the command <log:tail>.");
+                        }
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_CHANGEGROUP));
+                    }
+
+                    break;
+                case SUBCMD_ADDGROUP:
+                    if (args.length == 3) {
+                            if (checkAdministratorCredential(console)) {
+                                if (userRegistry.addGroup(args[1], args[2])) {
+                                    console.println(
+                                            "The group " + args[2] + " of the user " + args[1] + " has been added.");
+                                } else {
+                                    console.println(
+                                            "The group " + args[2] + " of the user " + args[1] + " already exist!");
+                                }
+                            } else {
+                                console.println("You did not put a correct administrator credential.");
+                            }
+
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_ADDGROUP));
+                    }
+                    break;
+                case SUBCMD_RMVGROUP:
+                    if (args.length == 3) {
+                        if (checkAdministratorCredential(console)) {
+                            if (userRegistry.removeGroup(args[1], args[2])) {
+                                console.println(
+                                        "The group " + args[2] + " of the user " + args[1] + " has been removed.");
+                            } else {
+                                console.println(
+                                        "The group " + args[2] + " of the user " + args[1] + " does not exist!");
+                            }
+                        } else {
+                            console.println("You did not put a correct administrator credential.");
+                        }
+
+                    } else {
+                        console.printUsage(findUsage(SUBCMD_REMOVEROLE));
+                    }
+                    break;
                 case SUBCMD_CHANGEPASSWORD:
                     if (args.length == 3) {
                         User user = userRegistry.get(args[1]);

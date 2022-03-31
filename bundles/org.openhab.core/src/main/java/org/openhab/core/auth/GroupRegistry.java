@@ -32,34 +32,18 @@ public interface GroupRegistry extends Registry<Group, String> {
     public void removeGroup(String group);
 
     /**
-     * Add the user to the group in the registry, if the group exist.
-     *
-     * @param group that will receive a new user.
-     * @param user to add to the specified group.
-     */
-    public void addUserToGroup(String group, User user);
-
-    /**
-     * Remove the user to the group in the registry, if the group exist.
-     *
-     * @param group that will remove user.
-     * @param user to remove to the specified group.
-     */
-    public void removeUserToGroup(String group, User user);
-
-    /**
      * Add the role to the group in the registry, if the group exist and the role exist in the RoleRegistry.
      *
      * @param group that will receive a new role.
-     * @param user to add to the specified group.
+     * @param role to add to the specified group.
      */
-    public void addRoleToGroup(String group, User user);
+    public void addRoleToGroup(String group, String role);
 
     /**
      * Remove the role to the group in the registry, if the group exist and the role exist too.
      *
      * @param group that will remove role.
-     * @param user to remove to the specified group.
+     * @param role to remove to the specified group.
      */
-    public void removeRoleToGroup(String group, User user);
+    public void removeRoleToGroup(String group, String role);
 }

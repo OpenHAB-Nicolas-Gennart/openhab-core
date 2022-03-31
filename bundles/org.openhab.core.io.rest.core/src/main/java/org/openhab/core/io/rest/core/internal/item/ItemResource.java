@@ -815,7 +815,7 @@ public class ItemResource implements RESTResource {
         if (tags == null) {
             if (type == null) {
                 if (principal != null) {
-                    items = itemRegistry.getAllItemsWithRoles(principal, getItemNames(principal));
+                    items = itemRegistry.getAllItemsWithRoles(principal);
                 } else {
                     items = itemRegistry.getItems();
                 }
@@ -834,27 +834,7 @@ public class ItemResource implements RESTResource {
         return items;
     }
 
-    /**
-     * Return all the items name that correspond to the roles of the principal
-     *
-     * @param principal that want its itemNames
-     * @return set of itemNames
-     */
-    public Set<String> getItemNames(String principal) {
-        ManagedUser managedUser = (ManagedUser) userRegistry.get(principal);
-        if (managedUser == null) {
-            return new HashSet<>();
-        }
-        Set<String> roles = managedUser.getRoles();
-        Set<String> itemNames = new HashSet<>();
-        for (String role : roles) {
-            ManagedRole managedRole = (ManagedRole) roleRegistry.get(role);
-            if (managedRole != null) {
-                itemNames.addAll(managedRole.getItemNames());
-            }
-        }
-        return itemNames;
-    }
+
 
     private void addMetadata(EnrichedItemDTO dto, Set<String> namespaces, @Nullable Predicate<Metadata> filter) {
         Map<String, Object> metadata = new HashMap<>();

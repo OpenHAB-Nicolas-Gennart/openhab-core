@@ -30,7 +30,15 @@ public interface User extends Principal, Identifiable<String> {
      * Gets the roles attributed to the user.
      *
      * @see Role
-     * @return role attributed to the user
+     * @return roles attributed to the user
      */
     public Set<String> getRoles();
+
+    /**
+     * Gets the groups attributed to the user.
+     *
+     * @see Group
+     * @return groups attributed to the user
+     */
+    public Set<String> getGroups();
 }

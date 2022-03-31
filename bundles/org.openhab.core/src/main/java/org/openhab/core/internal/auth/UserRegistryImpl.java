@@ -16,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -52,10 +53,15 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     private static final String ALGORITHM = "PBKDF2WithHmacSHA512";
     private static final SecureRandom RAND = new SecureRandom();
 
+    private final RoleRegistry roleRegistry;
+    private final GroupRegistry groupRegistry;
+
     @Activate
-    public UserRegistryImpl(BundleContext context, Map<String, Object> properties) {
+    public UserRegistryImpl(BundleContext context, Map<String, Object> properties, @Reference RoleRegistry roleRegistry, @Reference GroupRegistry groupRegistry) {
         super(UserProvider.class);
         super.activate(context);
+        this.roleRegistry = roleRegistry;
+        this.groupRegistry = groupRegistry;
     }
 
     @Override
@@ -165,7 +171,16 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     }
 
     @Override
-    public void changeRole(User user, String oldRole, String newRole) {
+    public void changeRole(String user, String oldRole, String newRole) {
+        if (roleRegistry.get(oldRole) == null) {
+            throw new IllegalArgumentException(
+                    "The role" + oldRole + " does not exist in the RoleRegistry.");
+
+        }
+        if (roleRegistry.get(newRole) == null) {
+            throw new IllegalArgumentException("The role " + newRole + "does not exist in the RoleRegistry.");
+        }
+
         if (oldRole.equals(newRole)) {
             return;
         }
@@ -176,31 +191,37 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
                     "There must always be at least one user with the administrator role, so we can't remove it.");
         }
 
-        if (!(user instanceof ManagedUser)) {
-            throw new IllegalArgumentException("User is not managed: " + user.getName());
+        // We check if the user exist in the UserRegistry.
+        ManagedUser managedUser = (ManagedUser) get(user);
+        if(managedUser == null){
+            throw new IllegalArgumentException("The user " + user + " does not exist.");
         }
-        ManagedUser managedUser = (ManagedUser) user;
 
         HashSet<String> roles = (HashSet<String>) managedUser.getRoles();
 
         // if the role to be changed does not exist throw a new IllegalArgumentException
         if (!roles.contains(oldRole)) {
             throw new IllegalArgumentException(
-                    "The role " + oldRole + " does not exist for the user " + user.getName() + ", we can't change it.");
+                    "The role " + oldRole + " does not exist for the user " + user + ", we can't change it.");
         }
         roles.remove(oldRole);
-        boolean ret = roles.add(newRole);
+        roles.add(newRole);
 
         managedUser.setRoles(roles);
-        update(user);
+        update(managedUser);
     }
 
     @Override
-    public boolean addRole(User user, String role) {
-        if (!(user instanceof ManagedUser)) {
-            throw new IllegalArgumentException("User is not managed: " + user.getName());
+    public boolean addRole(String user, String role) {
+        if (roleRegistry.get(role) == null) {
+            throw new IllegalArgumentException("The role " + role + " does not exist in the RoleRegistry.");
         }
-        ManagedUser managedUser = (ManagedUser) user;
+
+        // We check if the user exist in the UserRegistry.
+        ManagedUser managedUser = (ManagedUser) get(user);
+        if(managedUser == null){
+            throw new IllegalArgumentException("The user " + user + " does not exist.");
+        }
 
         Set<String> roles = managedUser.getRoles();
 
@@ -212,17 +233,24 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     }
 
     @Override
-    public boolean removeRole(User user, String role) {
+    public boolean removeRole(String user, String role) {
+
+        if (roleRegistry.get(role) == null) {
+            throw new IllegalArgumentException("The role " + role + " does not exist in the RoleRegistry.");
+        }
+
         // We make sure that it remains at least one user with the administrator role.
         if (countRole("administrator") == 1 && role.equals("administrator")) {
             throw new IllegalArgumentException(
                     "There must always be at least one user with the administrator role, so we can't remove it.");
         }
 
-        if (!(user instanceof ManagedUser)) {
-            throw new IllegalArgumentException("User is not managed: " + user.getName());
+        // We check if the user exist in the UserRegistry.
+        ManagedUser managedUser = (ManagedUser) get(user);
+        if(managedUser == null){
+            throw new IllegalArgumentException("The user " + user + " does not exist.");
         }
-        ManagedUser managedUser = (ManagedUser) user;
+
 
         Set<String> roles = managedUser.getRoles();
 
@@ -254,6 +282,101 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
             }
         }
         return count;
+    }
+
+    @Override
+    public void changeGroup(String user, String oldGroup, String newGroup) {
+        if (groupRegistry.get(oldGroup) == null) {
+            throw new IllegalArgumentException(
+                    "The group" + oldGroup + " does not exist in the GroupRegistry.");
+
+        }
+        if (groupRegistry.get(newGroup) == null) {
+            throw new IllegalArgumentException("The group " + newGroup + "does not exist in the GroupRegistry.");
+        }
+
+        // We check if the user exist in the UserRegistry.
+        ManagedUser managedUser = (ManagedUser) get(user);
+        if(managedUser == null){
+            throw new IllegalArgumentException("The user " + user + " does not exist.");
+        }
+
+        if (oldGroup.equals(newGroup)) {
+            return;
+        }
+
+
+        HashSet<String> groups = (HashSet<String>) managedUser.getGroups();
+
+        // if the role to be changed does not exist throw a new IllegalArgumentException
+        if (!groups.contains(oldGroup)) {
+            throw new IllegalArgumentException(
+                    "The group " + oldGroup + " does not exist for the user " + user + ", we can't change it.");
+        }
+        groups.remove(oldGroup);
+        boolean ret = groups.add(newGroup);
+
+        managedUser.setRoles(groups);
+        update(managedUser);
+    }
+
+    @Override
+    public boolean addGroup(String user , String group) {
+        // We check if the group exist in the GroupRegistry.
+        if(groupRegistry.get(group)!= null){
+            ManagedUser managedUser = (ManagedUser) get(user);
+
+            // We check if the user exist in the Registry.
+            if (managedUser != null) {
+                HashSet<String> groups = (HashSet<String>) managedUser.getGroups();
+                // We check if the set changed
+                if (groups.add(group)) {
+                    managedUser.setGroups(groups);
+                    update(managedUser);
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            } else {
+                throw new IllegalArgumentException(
+                        "The user " + user + " does not exist in the UserRegistry.");
+            }
+        }
+        else{
+            throw new IllegalArgumentException(
+                    "The group " + group + " does not exist in the GroupRegistry.");
+        }
+
+    }
+
+    @Override
+    public boolean removeGroup(String user, String group){
+        // We check if the group exist in the GroupRegistry.
+        if(groupRegistry.get(group)!= null){
+            ManagedUser managedUser = (ManagedUser) get(user);
+
+            // We check if the user exist in the Registry.
+            if (managedUser != null) {
+                HashSet<String> groups = (HashSet<String>) managedUser.getGroups();
+                // We check if the set changed
+                if (groups.remove(group)) {
+                    managedUser.setGroups(groups);
+                    update(managedUser);
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            } else {
+                throw new IllegalArgumentException(
+                        "The user " + user + " does not exist in the UserRegistry.");
+            }
+        }
+        else{
+            throw new IllegalArgumentException(
+                    "The group " + group + " does not exist in the GroupRegistry.");
+        }
     }
 
     @Override
