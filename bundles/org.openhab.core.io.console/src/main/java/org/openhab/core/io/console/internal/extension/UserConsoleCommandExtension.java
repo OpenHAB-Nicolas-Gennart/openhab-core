@@ -108,7 +108,6 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                             // ask for an administrator credential.
                             if (checkAdministratorCredential(console)) {
                                 User newUser = userRegistry.register(args[1], args[2], Set.of(args[3]));
-                                roleRegistry.addRole(args[3]);
                                 console.println(newUser.toString());
                                 console.println("User created.");
                             } else {
@@ -126,7 +125,11 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         User user = userRegistry.get(args[1]);
                         if (user != null) {
                             if (checkAdministratorCredential(console)) {
-                                userRegistry.remove(user.getName());
+                                if (userRegistry.countRole("administrator") == 1
+                                        && user.getRoles().contains("administrator")) {
+                                    console.println(
+                                            "There must always be at least one user with the administrator role, so we can't remove it.");
+                                }
                                 console.println("User removed.");
                             } else {
                                 console.println("You did not put a correct administrator credential.");

@@ -18,7 +18,6 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
-import org.openhab.core.items.ItemRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.*;
 
@@ -29,11 +28,8 @@ import org.osgi.service.component.annotations.*;
 @Component(service = RoleRegistry.class, immediate = true)
 public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvider> implements RoleRegistry {
 
-    private final ItemRegistry itemRegistry;
-
-    public RoleRegistryImpl(@Nullable Class<RoleProvider> providerClazz, ItemRegistry itemRegistry) {
+    public RoleRegistryImpl(@Nullable Class<RoleProvider> providerClazz) {
         super(providerClazz);
-        this.itemRegistry = itemRegistry;
     }
 
     /**
@@ -41,10 +37,9 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
      *
      */
     @Activate
-    public RoleRegistryImpl(BundleContext bundleContext, @Reference ItemRegistry itemRegistry) {
+    public RoleRegistryImpl(BundleContext bundleContext) {
         super(RoleProvider.class);
         super.activate(bundleContext);
-        this.itemRegistry = itemRegistry;
     }
 
     @Override
@@ -72,9 +67,6 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
         ManagedRole managedrole = new ManagedRole(newRole);
         // We check if the oldRole exist.
         if (get(oldRole) != null) {
-            if (newRole.equals("administrator")) {
-                managedrole.setItemNames(itemRegistry.getAllItemNames());
-            }
             remove(oldRole);
             add(managedrole);
         } else {
@@ -88,9 +80,6 @@ public class RoleRegistryImpl extends AbstractRegistry<Role, String, RoleProvide
         ManagedRole managedrole = new ManagedRole(role);
         // We check if the role does not exist.
         if (get(role) == null) {
-            if (role.equals("administrator")) {
-                managedrole.setItemNames(itemRegistry.getAllItemNames());
-            }
             add(managedrole);
         } else {
             throw new IllegalArgumentException(

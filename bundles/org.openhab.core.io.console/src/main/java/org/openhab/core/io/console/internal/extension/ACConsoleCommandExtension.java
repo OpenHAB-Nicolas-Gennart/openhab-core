@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(service = ConsoleCommandExtension.class)
 @NonNullByDefault
-public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension {
+public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
 
     private static final String SUBCMD_LISTAC = "listAC";
 
@@ -41,19 +41,22 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
     private static final String SUBCMD_AC_ADDITEMTOROLE = "addItemToRole";
     private static final String SUBCMD_AC_RMVITEMTOROLE = "rmvItemToRole";
 
-    private final Logger logger = LoggerFactory.getLogger(RoleConsoleCommandExtension.class);
+    private final Logger logger = LoggerFactory.getLogger(ACConsoleCommandExtension.class);
 
     private final UserRegistry userRegistry;
     private final ItemRegistry itemRegistry;
     private final RoleRegistry roleRegistry;
+    private final GroupRegistry groupRegistry;
 
     @Activate
-    public RoleConsoleCommandExtension(final @Reference UserRegistry userRegistry,
-            final @Reference ItemRegistry itemRegistry, final @Reference RoleRegistry roleRegistry) {
+    public ACConsoleCommandExtension(final @Reference UserRegistry userRegistry,
+            final @Reference ItemRegistry itemRegistry, final @Reference RoleRegistry roleRegistry,
+            final @Reference GroupRegistry groupRegistry) {
         super("ac", "manage the role-based access control.");
         this.userRegistry = userRegistry;
         this.itemRegistry = itemRegistry;
         this.roleRegistry = roleRegistry;
+        this.groupRegistry = groupRegistry;
     }
 
     @Override
@@ -262,6 +265,9 @@ public class RoleConsoleCommandExtension extends AbstractConsoleCommandExtension
                         console.printUsage(findUsage(SUBCMD_REMOVEROLE));
                     }
 
+                    break;
+                case SUBCMD_ADDGROUP:
+                    groupRegistry.changeGroup("", "");
                     break;
                 default:
                     console.println("Unknown command '" + subCommand + "'");

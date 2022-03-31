@@ -56,6 +56,7 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
 
     @Override
     public void changeGroup(String oldGroup, String newGroup) {
+        add(new ManagedGroup("test"));
     }
 
     @Override

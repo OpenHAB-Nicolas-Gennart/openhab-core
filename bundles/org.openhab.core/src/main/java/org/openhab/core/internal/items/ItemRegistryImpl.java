@@ -76,7 +76,7 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
 
     @Activate
     public ItemRegistryImpl(final @Reference MetadataRegistry metadataRegistry,
-            final @Reference UserRegistry userRegistry) {
+            final @Reference UserRegistry userRegistry, final @Reference RoleRegistry roleRegistry) {
         super(ItemProvider.class);
         this.metadataRegistry = metadataRegistry;
         this.userRegistry = userRegistry;
