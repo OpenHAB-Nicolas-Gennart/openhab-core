@@ -229,6 +229,7 @@ public class ItemResource implements RESTResource {
                 .peek(dto -> addMetadata(dto, namespaces, null)) //
                 .peek(dto -> dto.editable = isEditable(dto.name));
         itemStream = dtoMapper.limitToFields(itemStream, fields);
+
         return Response.ok(new Stream2JSONInputStream(itemStream)).build();
     }
 
@@ -833,8 +834,6 @@ public class ItemResource implements RESTResource {
 
         return items;
     }
-
-
 
     private void addMetadata(EnrichedItemDTO dto, Set<String> namespaces, @Nullable Predicate<Metadata> filter) {
         Map<String, Object> metadata = new HashMap<>();

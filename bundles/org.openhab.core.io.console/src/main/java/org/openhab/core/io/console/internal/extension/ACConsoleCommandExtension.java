@@ -27,7 +27,6 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
     private static final String SUBCMD_ADDGROUP = "addGroup";
     private static final String SUBCMD_REMOVEGROUP = "rmvGroup";
 
-
     private static final String SUBCMD_ADDROLETOGROUP = "addRoleToGroup";
     private static final String SUBCMD_RMVROLETOGROUP = "rmvRoleToGroup";
 
@@ -73,17 +72,14 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                 buildCommandUsage(SUBCMD_RMVROLETOGROUP + " <group> <role>",
                         "removes the specified role in the specified group"),
 
-
                 buildCommandUsage(SUBCMD_LISTROLES, "lists the roles in the registry"),
                 buildCommandUsage(SUBCMD_CHANGEROLE + " <oldRole> <newRole>", "changes the role name in the registry"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <role>", "adds the role in the registry"),
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <role>", "removes the role in the registry"),
 
-                buildCommandUsage(SUBCMD_ADDITEMTOROLE + " <role> <itemName>",
-                        "adds the specified item to the role"),
+                buildCommandUsage(SUBCMD_ADDITEMTOROLE + " <role> <itemName>", "adds the specified item to the role"),
                 buildCommandUsage(SUBCMD_RMVITEMTOROLE + " <role> <itemName>",
                         "removes the specified item to the role"));
-
     }
 
     @Override
@@ -98,13 +94,14 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                                 .map(role -> (ManagedRole) role).collect(Collectors.toSet());
 
                         Collection<Group> groups = groupRegistry.getAll();
-                        HashSet<ManagedGroup> managedGroups = (HashSet<ManagedGroup>) groups.stream().map(group -> (ManagedGroup) group).collect(Collectors.toSet());
+                        HashSet<ManagedGroup> managedGroups = (HashSet<ManagedGroup>) groups.stream()
+                                .map(group -> (ManagedGroup) group).collect(Collectors.toSet());
 
                         System.out.println("----------------------------------");
                         System.out.println("<ROLE-BASED ACCESS CONTROL MODEL>");
                         System.out.println("----------------------------------");
                         System.out.println("GROUPS");
-                        for(ManagedGroup managedGroup : managedGroups){
+                        for (ManagedGroup managedGroup : managedGroups) {
                             printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
                         }
                         System.out.println("ROLES");
@@ -186,8 +183,7 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                         try {
                             groupRegistry.addRoleToGroup(args[1], args[2]);
                             System.out.println("The group is added!");
-                            System.out.println("Here you can see the group " + args[2]
-                                    + " and his actual role(s) : ");
+                            System.out.println("Here you can see the group " + args[1] + " and his actual role(s) : ");
                             ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(args[1]);
                             if (managedGroup != null) {
                                 printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
@@ -205,8 +201,7 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                         try {
                             groupRegistry.removeRoleToGroup(args[1], args[2]);
                             System.out.println("The group is rmoved!");
-                            System.out.println("Here you can see the group " + args[2]
-                                    + " and his actual role(s) : ");
+                            System.out.println("Here you can see the group " + args[2] + " and his actual role(s) : ");
                             ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(args[1]);
                             if (managedGroup != null) {
                                 printGroupWithRoles(managedGroup.getGroup(), managedGroup.getRoles());
@@ -316,20 +311,16 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
                                 System.out.println("The itemName " + args[2] + " does not exist");
                                 System.out.println("The available items are the following:");
                                 System.out.println(itemRegistry.getAllItemNames());
+                                return;
                             }
-                            try {
-                                System.out.println("The added items are as follows:");
-                                printSet(items);
-                                roleRegistry.addItemsToRole(args[1], (HashSet<String>) items);
-                                System.out.println("Here you can see the role " + args[2]
-                                        + " and his actual authorized item(s) : ");
-                                ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
-                                if (managedRole != null) {
-                                    printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
-                                }
-                            } catch (IllegalArgumentException iae) {
-                                logger.warn("IllegalArgumentException: ", iae);
-                                console.println("Look at your logs with the command <log:tail>.");
+                            System.out.println("The added items are as follows:");
+                            printSet(items);
+                            roleRegistry.addItemsToRole(args[1], (HashSet<String>) items);
+                            System.out.println(
+                                    "Here you can see the role " + args[2] + " and his actual authorized item(s) : ");
+                            ManagedRole managedRole = (ManagedRole) roleRegistry.get(args[1]);
+                            if (managedRole != null) {
+                                printRoleWithItems(managedRole.getRole(), managedRole.getItemNames());
                             }
 
                         } catch (IllegalArgumentException ie) {
@@ -484,19 +475,19 @@ public class ACConsoleCommandExtension extends AbstractConsoleCommandExtension {
      */
     private void printGroupWithRoles(String group, Set<String> roles) {
 
-            StringBuilder rolesToString = new StringBuilder("(");
-            int i = 0;
-            for (String role : roles) {
-                if (i == 0) {
-                    rolesToString.append(role);
-                    i = 1;
-                } else {
-                    rolesToString.append(", ").append(role);
-                }
+        StringBuilder rolesToString = new StringBuilder("(");
+        int i = 0;
+        for (String role : roles) {
+            if (i == 0) {
+                rolesToString.append(role);
+                i = 1;
+            } else {
+                rolesToString.append(", ").append(role);
             }
-            rolesToString.append(")");
+        }
+        rolesToString.append(")");
 
-            System.out.println(group + ": " + rolesToString);
+        System.out.println(group + ": " + rolesToString);
     }
 
     /**

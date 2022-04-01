@@ -182,6 +182,8 @@ public class ManagedUser implements User {
 
     @Override
     public String toString() {
-        return name + " (" + String.join(", ", roles.stream().toArray(String[]::new)) + ")";
+
+        return name + " role(s): (" + String.join(", ", roles.stream().toArray(String[]::new)) + ") group(s): ("
+                + String.join(", ", groups.stream().toArray(String[]::new)) + ")";
     }
 }

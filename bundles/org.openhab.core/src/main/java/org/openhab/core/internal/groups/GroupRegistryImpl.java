@@ -1,13 +1,13 @@
 package org.openhab.core.internal.groups;
 
+import java.util.HashSet;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
 import org.openhab.core.common.registry.AbstractRegistry;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.*;
-
-import java.util.HashSet;
 
 /**
  * @author Nicolas Gennart
@@ -57,13 +57,11 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
             throw new IllegalArgumentException("The newGroup " + newGroup + " already exist in the GroupRegistry.");
         }
 
-        if(newGroup.equals("administrator") || newGroup.equals("user")){
-            throw new IllegalArgumentException(
-                    "The group name user or administrator can not be used");
+        if (newGroup.equals("administrator") || newGroup.equals("user")) {
+            throw new IllegalArgumentException("The group name user or administrator can not be used");
         }
-        if(roleRegistry.getAll().contains(newGroup)){
-            throw new IllegalArgumentException(
-                    "This group name "+ newGroup +" is already uses for a role");
+        if (roleRegistry.getAll().contains(newGroup)) {
+            throw new IllegalArgumentException("This group name " + newGroup + " is already uses for a role");
         }
 
         ManagedGroup managedGroup = new ManagedGroup(newGroup);
@@ -79,13 +77,11 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
 
     @Override
     public void addGroup(String group) {
-        if(group.equals("administrator") || group.equals("user")){
-            throw new IllegalArgumentException(
-                    "The group name user or administrator can not be used");
+        if (group.equals("administrator") || group.equals("user")) {
+            throw new IllegalArgumentException("The group name user or administrator can not be used");
         }
-        if(roleRegistry.getAll().contains(group)){
-            throw new IllegalArgumentException(
-                    "This group name "+ group +" is already uses for a role");
+        if (roleRegistry.getAll().contains(group)) {
+            throw new IllegalArgumentException("This group name " + group + " is already uses for a role");
         }
         ManagedGroup managedGroup = new ManagedGroup(group);
         // We check if the group does not exist.
@@ -108,11 +104,10 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
         }
     }
 
-
     @Override
     public void addRoleToGroup(String group, String role) {
         // We check if the role exist in the RoleRegistry.
-        if(roleRegistry.get(role) != null){
+        if (roleRegistry.get(role) != null) {
             ManagedGroup managedGroup = (ManagedGroup) get(group);
 
             // We check if the role exist in the registry.
@@ -122,17 +117,14 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
                 if (roles.add(role)) {
                     managedGroup.setRoles(roles);
                     update(managedGroup);
-                }
-                else{
-                    throw new IllegalArgumentException(
-                            "The role " + role + " is already present in the group.");
+                } else {
+                    throw new IllegalArgumentException("The role " + role + " is already present in the group.");
                 }
             } else {
                 throw new IllegalArgumentException(
                         "The group " + group + " does not exist in the GroupRegistry so we can not add items to it.");
             }
-        }
-        else{
+        } else {
             throw new IllegalArgumentException(
                     "The role " + role + " does not exist in the RoleRegistry so we can not add it to a group.");
         }
@@ -141,7 +133,7 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
     @Override
     public void removeRoleToGroup(String group, String role) {
         // We check if the role exist in the RoleRegistry.
-        if(roleRegistry.get(role) != null){
+        if (roleRegistry.get(role) != null) {
             ManagedGroup managedGroup = (ManagedGroup) get(group);
 
             // We check if the role exist in the registry.
@@ -151,17 +143,14 @@ public class GroupRegistryImpl extends AbstractRegistry<Group, String, GroupProv
                 if (roles.remove(role)) {
                     managedGroup.setRoles(roles);
                     update(managedGroup);
-                }
-                else{
-                    throw new IllegalArgumentException(
-                            "The role " + role + " is not present in the group.");
+                } else {
+                    throw new IllegalArgumentException("The role " + role + " is not present in the group.");
                 }
             } else {
                 throw new IllegalArgumentException(
                         "The group " + group + " does not exist in the GroupRegistry so we can not add items to it.");
             }
-        }
-        else{
+        } else {
             throw new IllegalArgumentException(
                     "The role " + role + " does not exist in the RoleRegistry so we can not add it to a group.");
         }

@@ -78,7 +78,8 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
 
     @Activate
     public ItemRegistryImpl(final @Reference MetadataRegistry metadataRegistry,
-            final @Reference UserRegistry userRegistry, final @Reference RoleRegistry roleRegistry, final @Reference GroupRegistry groupRegistry) {
+            final @Reference UserRegistry userRegistry, final @Reference RoleRegistry roleRegistry,
+            final @Reference GroupRegistry groupRegistry) {
         super(ItemProvider.class);
         this.metadataRegistry = metadataRegistry;
         this.userRegistry = userRegistry;
@@ -166,9 +167,9 @@ public class ItemRegistryImpl extends AbstractRegistry<Item, String, ItemProvide
         Set<String> groups = managedUser.getGroups();
         Set<String> roles = managedUser.getRoles();
 
-        for (String group : groups){
+        for (String group : groups) {
             ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(group);
-            if(managedGroup != null){
+            if (managedGroup != null) {
                 roles.addAll(managedGroup.getRoles());
             }
         }

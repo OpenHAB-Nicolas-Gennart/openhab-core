@@ -28,6 +28,7 @@ public class GenericUser implements User {
 
     private String name;
     private Set<String> roles;
+    private Set<String> groups;
 
     /**
      * Constructs a user attributed with a set of roles.
@@ -35,9 +36,10 @@ public class GenericUser implements User {
      * @param name the username (account name)
      * @param roles the roles attributed to this user
      */
-    public GenericUser(String name, Set<String> roles) {
+    public GenericUser(String name, Set<String> roles, Set<String> groups) {
         this.name = name;
         this.roles = roles;
+        this.groups = groups;
     }
 
     /**
@@ -46,7 +48,7 @@ public class GenericUser implements User {
      * @param name the username (account name)
      */
     public GenericUser(String name) {
-        this(name, new HashSet<>());
+        this(name, new HashSet<>(), new HashSet<>());
     }
 
     @Override
@@ -62,5 +64,10 @@ public class GenericUser implements User {
     @Override
     public Set<String> getRoles() {
         return roles;
+    }
+
+    @Override
+    public Set<String> getGroups() {
+        return groups;
     }
 }

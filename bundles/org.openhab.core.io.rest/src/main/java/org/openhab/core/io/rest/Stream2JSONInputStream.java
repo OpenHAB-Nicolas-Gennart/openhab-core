@@ -50,7 +50,7 @@ public class Stream2JSONInputStream extends InputStream implements JSONInputStre
      * @param source the {@link Stream} backing this input stream. Must not be null.
      */
     public Stream2JSONInputStream(Stream<?> source) {
-        iterator = source.map(e -> gson.toJson(e)).iterator();
+        iterator = source.map(gson::toJson).iterator();
         jsonElementStream = new ByteArrayInputStream(new byte[0]);
         firstIteratorElement = true;
     }

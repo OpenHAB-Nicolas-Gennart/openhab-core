@@ -54,7 +54,8 @@ public class UserRegistryImplTest {
     public void setup() throws Exception {
         when(bundleContextMock.getService(same(managedProviderRefMock))).thenReturn(managedProviderMock);
 
-        registry = new UserRegistryImpl(bundleContextMock, Map.of(), mock(RoleRegistry.class), mock(GroupRegistry.class));
+        registry = new UserRegistryImpl(bundleContextMock, Map.of(), mock(RoleRegistry.class),
+                mock(GroupRegistry.class));
         registry.setManagedProvider(managedProviderMock);
         registry.waitForCompletedAsyncActivationTasks();
 
@@ -70,41 +71,43 @@ public class UserRegistryImplTest {
         assertNull(res);
     }
 
-    /*@Test
-    public void testUserManagement() throws Exception {
-        User user = registry.register("username", "password", Set.of("administrator"));
-        registry.added(managedProviderMock, user);
-        assertNotNull(user);
-        assertTrue(registry.containRole("administrator"));
-        assertEquals(registry.countRole("administrator"), 1);
-
-        // test roles management.
-        registry.addRole(user, "test");
-        user = registry.get("username");
-        Set<String> roles = user.getRoles();
-        assertTrue(roles.contains("test"));
-        assertTrue(registry.containRole("test"));
-        assertEquals(registry.countRole("test"), 1);
-        registry.changeRole(user, "test", "testChange");
-        user = registry.get("username");
-        roles = user.getRoles();
-        assertTrue(roles.contains("testChange"));
-
-        registry.removeRole(user, "testChange");
-        user = registry.get("username");
-        roles = user.getRoles();
-        assertFalse(roles.contains("testChange"));
-
-        // test to modify the password and to authenticate a user
-        registry.authenticate(new UsernamePasswordCredentials("username", "password"));
-        registry.changePassword(user, "password2");
-
-        registry.authenticate(new UsernamePasswordCredentials("username", "password2"));
-        registry.remove(user.getName());
-        registry.removed(managedProviderMock, user);
-        user = registry.get("username");
-        assertNull(user);
-    }*/
+    /*
+     * @Test
+     * public void testUserManagement() throws Exception {
+     * User user = registry.register("username", "password", Set.of("administrator"));
+     * registry.added(managedProviderMock, user);
+     * assertNotNull(user);
+     * assertTrue(registry.containRole("administrator"));
+     * assertEquals(registry.countRole("administrator"), 1);
+     * 
+     * // test roles management.
+     * registry.addRole(user, "test");
+     * user = registry.get("username");
+     * Set<String> roles = user.getRoles();
+     * assertTrue(roles.contains("test"));
+     * assertTrue(registry.containRole("test"));
+     * assertEquals(registry.countRole("test"), 1);
+     * registry.changeRole(user, "test", "testChange");
+     * user = registry.get("username");
+     * roles = user.getRoles();
+     * assertTrue(roles.contains("testChange"));
+     * 
+     * registry.removeRole(user, "testChange");
+     * user = registry.get("username");
+     * roles = user.getRoles();
+     * assertFalse(roles.contains("testChange"));
+     * 
+     * // test to modify the password and to authenticate a user
+     * registry.authenticate(new UsernamePasswordCredentials("username", "password"));
+     * registry.changePassword(user, "password2");
+     * 
+     * registry.authenticate(new UsernamePasswordCredentials("username", "password2"));
+     * registry.remove(user.getName());
+     * registry.removed(managedProviderMock, user);
+     * user = registry.get("username");
+     * assertNull(user);
+     * }
+     */
 
     @Test
     public void testSessions() throws Exception {

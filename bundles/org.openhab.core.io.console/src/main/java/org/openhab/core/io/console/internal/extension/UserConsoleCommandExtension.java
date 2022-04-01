@@ -83,18 +83,16 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                 buildCommandUsage(SUBCMD_ADD + " <userId> <password> <role>",
                         "adds a new user with the specified role"),
                 buildCommandUsage(SUBCMD_REMOVE + " <userId>", "removes the given user"),
-                buildCommandUsage(SUBCMD_LISTROLES + " <userId>", "lists the roles of the userID"),
+                buildCommandUsage(SUBCMD_LISTROLES, "lists the roles of the userID"),
                 buildCommandUsage(SUBCMD_CHANGEROLE + " <userId> <oldRole> <newRole>",
                         "changes the specific role of a user with a new one"),
                 buildCommandUsage(SUBCMD_ADDROLE + " <userId> <role>", "adds the specified role to the specified user"),
                 buildCommandUsage(SUBCMD_REMOVEROLE + " <userId> <role>", "removes the specified role of the user"),
-                buildCommandUsage(SUBCMD_LISTROLES + " <userId>", "lists the roles of the userID"),
+                buildCommandUsage(SUBCMD_LISTGROUPS, "lists the groups of the userID"),
                 buildCommandUsage(SUBCMD_CHANGEGROUP + " <userId> <oldGroup> <newGroup>",
                         "changes the specific group of a user with a new one"),
-                buildCommandUsage(SUBCMD_ADDGROUP + " <userId> <group> ",
-                        "adds the group to the user."),
-                buildCommandUsage(SUBCMD_RMVGROUP + " <userId> <group> ",
-                        "removes the group to the user."),
+                buildCommandUsage(SUBCMD_ADDGROUP + " <userId> <group> ", "adds the group to the user."),
+                buildCommandUsage(SUBCMD_RMVGROUP + " <userId> <group> ", "removes the group to the user."),
                 buildCommandUsage(SUBCMD_CHANGEPASSWORD + " <userId> <newPassword>", "changes the password of a user"),
                 buildCommandUsage(SUBCMD_LISTAPITOKENS, "lists the API tokens for all users"),
                 buildCommandUsage(SUBCMD_ADDAPITOKEN + " <userId> <tokenName> <scope>",
@@ -206,17 +204,15 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
 
                 case SUBCMD_ADDROLE:
                     if (args.length == 3) {
-                            if (checkAdministratorCredential(console)) {
-                                if (userRegistry.addRole(args[1], args[2])) {
-                                    console.println(
-                                            "The role " + args[2] + " of the user " + args[1] + " has been added.");
-                                } else {
-                                    console.println(
-                                            "The role " + args[2] + " of the user " + args[1] + " already exist!");
-                                }
+                        if (checkAdministratorCredential(console)) {
+                            if (userRegistry.addRole(args[1], args[2])) {
+                                console.println("The role " + args[2] + " of the user " + args[1] + " has been added.");
                             } else {
-                                console.println("You did not put a correct administrator credential.");
+                                console.println("The role " + args[2] + " of the user " + args[1] + " already exist!");
                             }
+                        } else {
+                            console.println("You did not put a correct administrator credential.");
+                        }
 
                     } else {
                         console.printUsage(findUsage(SUBCMD_ADDROLE));
@@ -227,8 +223,8 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                         try {
                             if (checkAdministratorCredential(console)) {
                                 if (userRegistry.removeRole(args[1], args[2])) {
-                                    console.println("The role " + args[2] + " of the user " + args[1]
-                                            + " has been removed.");
+                                    console.println(
+                                            "The role " + args[2] + " of the user " + args[1] + " has been removed.");
                                 } else {
                                     console.println(
                                             "The role " + args[2] + " of the user " + args[1] + " doesn't exist!");
@@ -248,17 +244,19 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                 case SUBCMD_LISTGROUPS:
                     if (args.length == 1) {
                         Collection<User> usersRegistry = userRegistry.getAll();
-                        HashSet<ManagedUser> managedUsers = (HashSet<ManagedUser>) usersRegistry.stream().map(user -> (ManagedUser) user).collect(Collectors.toSet());
+                        HashSet<ManagedUser> managedUsers = (HashSet<ManagedUser>) usersRegistry.stream()
+                                .map(user -> (ManagedUser) user).collect(Collectors.toSet());
                         for (ManagedUser managedUser : managedUsers) {
                             Set<String> groups = managedUser.getGroups();
-                            StringBuilder out;
+                            StringBuilder out = new StringBuilder();
                             if (groups.size() == 1) {
                                 out = new StringBuilder("The username " + managedUser.getName() + " has the group: ");
                                 for (String group : groups) {
                                     out.append(group);
                                 }
-                            } else {
-                                out = new StringBuilder("The username " + managedUser.getName() + " has these groups: (");
+                            } else if (groups.size() > 1) {
+                                out = new StringBuilder(
+                                        "The username " + managedUser.getName() + " has these groups: (");
                                 int i = 0;
                                 for (String group : groups) {
                                     if (i == groups.size() - 1) {
@@ -297,17 +295,16 @@ public class UserConsoleCommandExtension extends AbstractConsoleCommandExtension
                     break;
                 case SUBCMD_ADDGROUP:
                     if (args.length == 3) {
-                            if (checkAdministratorCredential(console)) {
-                                if (userRegistry.addGroup(args[1], args[2])) {
-                                    console.println(
-                                            "The group " + args[2] + " of the user " + args[1] + " has been added.");
-                                } else {
-                                    console.println(
-                                            "The group " + args[2] + " of the user " + args[1] + " already exist!");
-                                }
+                        if (checkAdministratorCredential(console)) {
+                            if (userRegistry.addGroup(args[1], args[2])) {
+                                console.println(
+                                        "The group " + args[2] + " of the user " + args[1] + " has been added.");
                             } else {
-                                console.println("You did not put a correct administrator credential.");
+                                console.println("The group " + args[2] + " of the user " + args[1] + " already exist!");
                             }
+                        } else {
+                            console.println("You did not put a correct administrator credential.");
+                        }
 
                     } else {
                         console.printUsage(findUsage(SUBCMD_ADDGROUP));

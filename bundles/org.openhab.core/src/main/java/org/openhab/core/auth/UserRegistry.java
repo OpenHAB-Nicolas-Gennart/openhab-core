@@ -100,12 +100,12 @@ public interface UserRegistry extends Registry<User, String>, AuthenticationProv
      * @param user that will receive a new group.
      * @param group to add to the specified user.
      */
-    public boolean addGroup(String user , String group);
+    public boolean addGroup(String user, String group);
 
     /**
      * Remove the group to the user in the registry, if the group and teh user exist.
      *
-     * @param user  that will remove group.
+     * @param user that will remove group.
      * @param group to remove to the specified group.
      */
     public boolean removeGroup(String user, String group);
