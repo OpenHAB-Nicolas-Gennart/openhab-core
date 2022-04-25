@@ -167,8 +167,6 @@ public class ItemResource implements RESTResource {
     private final MetadataRegistry metadataRegistry;
     private final MetadataSelectorMatcher metadataSelectorMatcher;
     private final VerifyToken verifyToken;
-    private final RoleRegistry roleRegistry;
-    private final UserRegistry userRegistry;
 
     @Activate
     public ItemResource(//
@@ -179,8 +177,7 @@ public class ItemResource implements RESTResource {
             final @Reference LocaleService localeService, //
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
-            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference VerifyToken verifyToken,
-            final @Reference RoleRegistry roleRegistry, final @Reference UserRegistry userRegistry) {
+            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference VerifyToken verifyToken) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -190,8 +187,6 @@ public class ItemResource implements RESTResource {
         this.metadataRegistry = metadataRegistry;
         this.metadataSelectorMatcher = metadataSelectorMatcher;
         this.verifyToken = verifyToken;
-        this.roleRegistry = roleRegistry;
-        this.userRegistry = userRegistry;
     }
 
     private UriBuilder uriBuilder(final UriInfo uriInfo, final HttpHeaders httpHeaders) {
@@ -232,6 +227,8 @@ public class ItemResource implements RESTResource {
 
         return Response.ok(new Stream2JSONInputStream(itemStream)).build();
     }
+
+
 
     @GET
     @RolesAllowed({ Role.USER, Role.ADMIN })
