@@ -1,28 +1,22 @@
 package org.openhab.core.io.rest.core.internal.accessControl;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.Optional;
+
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.GroupRegistry;
+import org.openhab.core.auth.Role;
 import org.openhab.core.auth.RoleRegistry;
 import org.openhab.core.auth.UserRegistry;
-import org.openhab.core.events.EventPublisher;
 import org.openhab.core.io.rest.*;
 import org.openhab.core.io.rest.auth.VerifyToken;
 import org.openhab.core.io.rest.core.internal.item.ItemResource;
-import org.openhab.core.io.rest.core.internal.item.MetadataSelectorMatcher;
-import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
-import org.openhab.core.io.rest.core.item.EnrichedItemDTOMapper;
-import org.openhab.core.items.ItemBuilderFactory;
-import org.openhab.core.items.ItemRegistry;
-import org.openhab.core.items.ManagedItemProvider;
-import org.openhab.core.items.MetadataRegistry;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -34,21 +28,17 @@ import org.osgi.service.jaxrs.whiteboard.propertytypes.JaxrsResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.security.PermitAll;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Component
 @JaxrsResource
 @JaxrsName(AccessControlRessource.PATH_ACCESS_CONTROL)
 @JaxrsApplicationSelect("(" + JaxrsWhiteboardConstants.JAX_RS_NAME + "=" + RESTConstants.JAX_RS_NAME + ")")
-//@JSONRequired
+@JSONRequired
 @Path(AccessControlRessource.PATH_ACCESS_CONTROL)
 // see https://docs.swagger.io/swagger-core/v2.1.12/apidocs/io/swagger/v3/oas/annotations/tags/Tag.html
 @Tag(name = AccessControlRessource.PATH_ACCESS_CONTROL)
@@ -79,8 +69,6 @@ public class AccessControlRessource implements RESTResource {
 
     private final Logger logger = LoggerFactory.getLogger(ItemResource.class);
 
-
-
     private final UserRegistry userRegistry;
     private final RoleRegistry roleRegistry;
     private final GroupRegistry groupRegistry;
@@ -88,8 +76,8 @@ public class AccessControlRessource implements RESTResource {
 
     @Activate
     public AccessControlRessource(final @Reference UserRegistry userRegistry,
-                        final @Reference RoleRegistry roleRegistry,
-                        final @Reference GroupRegistry groupRegistry, final @Reference VerifyToken verifyToken){
+            final @Reference RoleRegistry roleRegistry, final @Reference GroupRegistry groupRegistry,
+            final @Reference VerifyToken verifyToken) {
 
         this.userRegistry = userRegistry;
         this.roleRegistry = roleRegistry;
@@ -99,10 +87,11 @@ public class AccessControlRessource implements RESTResource {
 
     @GET
     @PermitAll
-    @Produces(MediaType.TEXT_PLAIN)
-    //@Operation(operationId = "getItems", summary = "Get all available items.", responses = {
-      //      @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EnrichedItemDTO.class)))) })
-    public Response getItems(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders) {
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(operationId = "getTest", summary = "Gets the test of an item.", responses = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "404", description = "Item not found") })
+    public Response getTest(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders) {
 
         Principal principal;
         try {
@@ -116,4 +105,23 @@ public class AccessControlRessource implements RESTResource {
         return Response.ok("IT works").build();
     }
 
+    /**
+     *
+     * @param
+     * @return
+     */
+    @GET
+    @RolesAllowed({ Role.USER, Role.ADMIN })
+    @Path("/role")
+    @Produces(MediaType.TEXT_PLAIN)
+    @Operation(operationId = "getRoleTest", summary = "Gets the state of an item.", responses = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "404", description = "Item not found") })
+    public Response getRoleTest() {
+        // get item
+        System.out.println("It works");
+        // we cannot use JSONResponse.createResponse() bc. MediaType.TEXT_PLAIN
+        // return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
+        return Response.ok("It works!!!").build();
+    }
 }

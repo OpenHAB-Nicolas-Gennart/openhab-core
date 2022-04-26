@@ -177,7 +177,8 @@ public class ItemResource implements RESTResource {
             final @Reference LocaleService localeService, //
             final @Reference ManagedItemProvider managedItemProvider,
             final @Reference MetadataRegistry metadataRegistry,
-            final @Reference MetadataSelectorMatcher metadataSelectorMatcher, final @Reference VerifyToken verifyToken) {
+            final @Reference MetadataSelectorMatcher metadataSelectorMatcher,
+            final @Reference VerifyToken verifyToken) {
         this.dtoMapper = dtoMapper;
         this.eventPublisher = eventPublisher;
         this.itemBuilderFactory = itemBuilderFactory;
@@ -227,8 +228,6 @@ public class ItemResource implements RESTResource {
 
         return Response.ok(new Stream2JSONInputStream(itemStream)).build();
     }
-
-
 
     @GET
     @RolesAllowed({ Role.USER, Role.ADMIN })
