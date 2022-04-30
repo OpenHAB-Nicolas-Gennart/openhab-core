@@ -87,7 +87,7 @@ public class AccessControlRessource implements RESTResource {
 
     @GET
     @PermitAll
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "getTest", summary = "Gets the test of an item.", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "404", description = "Item not found") })
