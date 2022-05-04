@@ -147,14 +147,16 @@ public class AccessControlResource implements RESTResource {
      */
     @PUT
     @PermitAll
+    @Path("/{put: [a-zA-Z_0-9]+}")
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.TEXT_PLAIN)
+    //@Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "updateAccessControl", summary = "update access control", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
-            @ApiResponse(responseCode = "201", description = "Access controle updated."),
+            @ApiResponse(responseCode = "201", description = "Access control updated."),
             @ApiResponse(responseCode = "400", description = "Payload invalid.") })
     public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-                                        @Parameter(description = "array of item data", required = true) @Nullable AccessControl accessControl) {
+                                        @PathParam("put") @Parameter(description = "put the access control information") String put,
+                                        @Parameter(description = "array of item data", required = true) AccessControl accessControl) {
         /*
          * Principal principal;
          * try {
