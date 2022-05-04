@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 
@@ -16,6 +17,8 @@ import org.openhab.core.auth.*;
 import org.openhab.core.io.rest.*;
 import org.openhab.core.io.rest.auth.VerifyToken;
 import org.openhab.core.io.rest.core.internal.item.ItemResource;
+import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
+import org.openhab.core.items.dto.GroupItemDTO;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -34,6 +37,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Component
@@ -136,7 +140,7 @@ public class AccessControlResource implements RESTResource {
         linkedList.add("Gson works");
         System.out.println(new Gson().toJson(linkedList));
         // we cannot use JSONResponse.createResponse() bc. MediaType.TEXT_PLAIN
-        //return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
+        // return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
         return Response.ok(gson).build();
     }
 
@@ -149,14 +153,14 @@ public class AccessControlResource implements RESTResource {
     @PermitAll
     @Path("/{put: [a-zA-Z_0-9]+}")
     @Consumes(MediaType.APPLICATION_JSON)
-    //@Produces(MediaType.TEXT_PLAIN)
+    // @Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "updateAccessControl", summary = "update access control", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "201", description = "Access control updated."),
             @ApiResponse(responseCode = "400", description = "Payload invalid.") })
     public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-                                        @PathParam("put") @Parameter(description = "put the access control information") String put,
-                                        @Parameter(description = "array of item data", required = true) AccessControl accessControl) {
+            @PathParam("put") @Parameter(description = "put the access control information") String put,
+            @Parameter(description = "array of item data", required = true) AccessControl accessControl) {
         /*
          * Principal principal;
          * try {
@@ -188,5 +192,34 @@ public class AccessControlResource implements RESTResource {
         System.out.println(accessControl.getRoles().toString());
 
         return Response.ok("It works!!!").build();
+    }
+
+    /**
+     * Create or Update an item by supplying an item bean.
+     *
+     * @param itemname
+     * @param item the item bean.
+     * @return
+     */
+    @PUT
+    @RolesAllowed({ Role.ADMIN })
+    @Path("/{itemname: [a-zA-Z_0-9]+}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Operation(operationId = "addOrUpdateItemInRegistry", summary = "Adds a new item to the registry or updates the existing item.", security = {
+            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
+                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = EnrichedItemDTO.class))),
+                    @ApiResponse(responseCode = "201", description = "Item created."),
+                    @ApiResponse(responseCode = "400", description = "Payload invalid."),
+                    @ApiResponse(responseCode = "404", description = "Item not found or name in path invalid."),
+                    @ApiResponse(responseCode = "405", description = "Item not editable.") })
+    public Response createOrUpdateItem(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
+            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
+            @PathParam("itemname") @Parameter(description = "item name") String itemname,
+            @Parameter(description = "item data", required = true) @Nullable GroupItemDTO item) {
+        System.out.println("success");
+        System.out.println(itemname);
+        System.out.println(item.toString());
+
+        return Response.ok("creatOrUpdateItemWorks").build();
     }
 }
