@@ -1,24 +1,21 @@
 package org.openhab.core.io.rest.core.internal.accessControl;
 
+import java.io.IOException;
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Locale;
+import java.util.Set;
 
-import javax.annotation.security.RolesAllowed;
+import javax.annotation.security.PermitAll;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
 import org.openhab.core.io.rest.*;
 import org.openhab.core.io.rest.auth.VerifyToken;
 import org.openhab.core.io.rest.core.internal.item.ItemResource;
-import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
-import org.openhab.core.items.Item;
-import org.openhab.core.items.dto.GroupItemDTO;
-import org.openhab.core.items.dto.ItemDTOMapper;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -70,44 +67,41 @@ public class AccessControlResource implements RESTResource {
     }
 
     @GET
-    @RolesAllowed({ Role.ADMIN })
+    @PermitAll
     @Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "getAccessControl", summary = "Gets the information from the role-based access control model.", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "404", description = "AccessControl not found") })
     public Response getAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders) {
+        Principal principal;
+        try {
+            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+        } catch (IOException io) {
+            principal = verifyToken.anonymousPrincipal;
+        }
+        System.out.println(principal.getName());
+        // We check if the user has the administrator access and we verify the token.
 
+        try {
+            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+            User user = userRegistry.get(principal.getName());
+            if (user != null) {
+                Set<String> roles = user.getRoles();
+                if (!roles.contains("administrator")) {
+                    return Response.status(Response.Status.BAD_REQUEST).build();
+                }
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+        } catch (IOException io) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
         Gson gson = new Gson();
-        String resp= gson.toJson(getAccessControlObject());
+        String resp = gson.toJson(getAccessControlObject());
+        System.out.println("getAccessControl works");
         System.out.println(resp);
         return Response.ok(resp).build();
     }
-
-    /*
-     * Principal principal;
-     * try {
-     * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-     * } catch (IOException io) {
-     * principal = verifyToken.anonymousPrincipal;
-     * }
-     * System.out.println(principal.getName());
-     * // We check if the user has the administrator access and we verify the token.
-     * 
-     * try {
-     * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-     * User user = userRegistry.get(principal.getName());
-     * if (user != null) {
-     * Set<String> roles = user.getRoles();
-     * if (!roles.contains("administrator")) {
-     * return Response.status(Response.Status.BAD_REQUEST).build();
-     * }
-     * } else {
-     * return Response.status(Response.Status.BAD_REQUEST).build();
-     * }
-     * } catch (IOException io) {
-     * return Response.status(Response.Status.BAD_REQUEST).build();
-     * }
-     */
 
     private AccessControl getAccessControlObject() {
         HashSet<UserAccessControl> userAccessControls = new HashSet<>();
@@ -126,22 +120,24 @@ public class AccessControlResource implements RESTResource {
      * @return
      */
     @GET
-    @RolesAllowed({ Role.USER, Role.ADMIN })
+    @PermitAll
     @Path("/role")
     @Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "getRoleTest", summary = "Gets the state of an item.", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "404", description = "Item not found") })
     public Response getRoleTest() {
+
         // get item
-        System.out.println("It works");
-        System.out.println(new Gson().toJson(getAccessControlObject()));
+        System.out.println("It works getRoleTest");
+        String gson = new Gson().toJson(getAccessControlObject());
+        System.out.println(gson);
         LinkedList<String> linkedList = new LinkedList<>();
         linkedList.add("Gson works");
         System.out.println(new Gson().toJson(linkedList));
         // we cannot use JSONResponse.createResponse() bc. MediaType.TEXT_PLAIN
-        // return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
-        return Response.ok("It works!!!").build();
+        //return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
+        return Response.ok(gson).build();
     }
 
     /**
@@ -150,20 +146,45 @@ public class AccessControlResource implements RESTResource {
      * @return
      */
     @PUT
-    @RolesAllowed({ Role.ADMIN })
+    @PermitAll
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     @Operation(operationId = "updateAccessControl", summary = "update access control", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "201", description = "Access controle updated."),
             @ApiResponse(responseCode = "400", description = "Payload invalid.") })
-    public Response createOrUpdateItem(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-            @Parameter(description = "array of item data", required = true) AccessControl accessControl) {
-
-        System.out.println("It works!!");
+    public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
+                                        @Parameter(description = "array of item data", required = true) @Nullable AccessControl accessControl) {
+        /*
+         * Principal principal;
+         * try {
+         * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+         * } catch (IOException io) {
+         * principal = verifyToken.anonymousPrincipal;
+         * }
+         * System.out.println(principal.getName());
+         * // We check if the user has the administrator access and we verify the token.
+         *
+         * try {
+         * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+         * User user = userRegistry.get(principal.getName());
+         * if (user != null) {
+         * Set<String> roles = user.getRoles();
+         * if (!roles.contains("administrator")) {
+         * return Response.status(Response.Status.BAD_REQUEST).build();
+         * }
+         * } else {
+         * return Response.status(Response.Status.BAD_REQUEST).build();
+         * }
+         * } catch (IOException io) {
+         * return Response.status(Response.Status.BAD_REQUEST).build();
+         * }
+         */
+        System.out.println("It works PUT!!");
         System.out.println(accessControl);
+        System.out.println("roles of accessControl PUT");
         System.out.println(accessControl.getRoles().toString());
 
         return Response.ok("It works!!!").build();
     }
-
 }
