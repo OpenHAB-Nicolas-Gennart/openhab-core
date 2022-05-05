@@ -3,24 +3,17 @@ package org.openhab.core.io.rest.core.internal.accessControl;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 
 import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
 import org.openhab.core.io.rest.*;
 import org.openhab.core.io.rest.auth.VerifyToken;
 import org.openhab.core.io.rest.core.internal.item.ItemResource;
-import org.openhab.core.io.rest.core.item.EnrichedItemDTO;
-import org.openhab.core.items.dto.GroupItemDTO;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -33,13 +26,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Component
@@ -120,14 +114,13 @@ public class AccessControlResource implements RESTResource {
                 (HashSet<Role>) roleRegistry.getAll());
     }
 
-
     @PUT
     @PermitAll
     @Path("/put")
     @Consumes(MediaType.TEXT_PLAIN)
     @Operation(operationId = "updateAccessControl", summary = "update access control information.", responses = {
-                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
-                    @ApiResponse(responseCode = "404", description = "Access Control not found.") })
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "404", description = "Access Control not found.") })
     public Response setEnabled(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
             @Parameter(description = "access control information") String accessControlStr) throws IOException {
 
@@ -170,68 +163,67 @@ public class AccessControlResource implements RESTResource {
         return Response.ok("success").build();
     }
 
-    private AccessControl jsonObjectToAccessControlObject(JsonObject jsonObject){
-        //We get the users access control.
+    private AccessControl jsonObjectToAccessControlObject(JsonObject jsonObject) {
+        // We get the users access control.
         Set<UserAccessControl> accessControl = new HashSet<>();
-        for(JsonElement jsonElementUserAccessControl : jsonObject.get("userAccessControlSet").getAsJsonArray()){
-            try{
+        for (JsonElement jsonElementUserAccessControl : jsonObject.get("userAccessControlSet").getAsJsonArray()) {
+            try {
                 JsonObject jsonObjectUserAccessControl = jsonElementUserAccessControl.getAsJsonObject();
 
                 String userName = jsonObjectUserAccessControl.get("name").getAsString();
                 Set<String> userRoles = new HashSet<>();
-                for(JsonElement jsonElementUserRole : jsonObjectUserAccessControl.get("roles").getAsJsonArray()){
+                for (JsonElement jsonElementUserRole : jsonObjectUserAccessControl.get("roles").getAsJsonArray()) {
                     userRoles.add(jsonElementUserRole.getAsString());
                 }
                 Set<String> userGroups = new HashSet<>();
-                for(JsonElement jsonElementUserGroup : jsonObjectUserAccessControl.get("groups").getAsJsonArray()){
+                for (JsonElement jsonElementUserGroup : jsonObjectUserAccessControl.get("groups").getAsJsonArray()) {
                     userGroups.add(jsonElementUserGroup.getAsString());
                 }
-                UserAccessControl userAccessControl = new UserAccessControl(userName,userRoles,userGroups);
+                UserAccessControl userAccessControl = new UserAccessControl(userName, userRoles, userGroups);
                 accessControl.add(userAccessControl);
-            }
-            catch (IllegalStateException ignored){
+            } catch (IllegalStateException ignored) {
 
             }
         }
 
-        //We get the groups.
+        // We get the groups.
         Set<Group> groups = new HashSet<>();
-        for(JsonElement jsonElementGroups: jsonObject.get("groups").getAsJsonArray()){
+        for (JsonElement jsonElementGroups : jsonObject.get("groups").getAsJsonArray()) {
             try {
                 JsonObject jsonObjectGroup = jsonElementGroups.getAsJsonObject();
 
                 String groupName = jsonObjectGroup.get("group").getAsString();
 
                 Set<String> roles = new HashSet<>();
-                for(JsonElement jsonElementRole : jsonObjectGroup.get("roles").getAsJsonArray()){
+                for (JsonElement jsonElementRole : jsonObjectGroup.get("roles").getAsJsonArray()) {
                     roles.add(jsonElementRole.getAsString());
                 }
                 ManagedGroup managedGroup = new ManagedGroup(groupName);
                 managedGroup.setRoles(roles);
                 groups.add(managedGroup);
-            }catch (IllegalStateException ignored){
+            } catch (IllegalStateException ignored) {
 
             }
         }
-        //We get the roles.
+        // We get the roles.
         Set<Role> roles = new HashSet<>();
-        for(JsonElement jsonElementRoles: jsonObject.get("roles").getAsJsonArray()){
+        for (JsonElement jsonElementRoles : jsonObject.get("roles").getAsJsonArray()) {
             try {
                 JsonObject jsonObjectRole = jsonElementRoles.getAsJsonObject();
 
                 String roleName = jsonObjectRole.get("role").getAsString();
 
                 Set<String> itemNames = new HashSet<>();
-                for(JsonElement jsonElementItem : jsonObjectRole.get("items").getAsJsonArray()){
+                for (JsonElement jsonElementItem : jsonObjectRole.get("items").getAsJsonArray()) {
                     itemNames.add(jsonElementItem.getAsString());
                 }
                 ManagedRole managedRole = new ManagedRole(roleName);
                 managedRole.setItemNames(itemNames);
                 roles.add(managedRole);
-            }catch (IllegalStateException ignored){
+            } catch (IllegalStateException ignored) {
 
             }
         }
-        return new AccessControl(accessControl,groups,roles);
+        return new AccessControl(accessControl, groups, roles);
     }
 }
