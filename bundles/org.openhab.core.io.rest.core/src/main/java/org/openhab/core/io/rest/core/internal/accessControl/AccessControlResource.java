@@ -121,7 +121,7 @@ public class AccessControlResource implements RESTResource {
     @Operation(operationId = "updateAccessControl", summary = "update access control information.", responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
             @ApiResponse(responseCode = "404", description = "Access Control not found.") })
-    public Response setEnabled(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
+    public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
             @Parameter(description = "access control information") String accessControlStr) throws IOException {
 
         Principal principal;
@@ -148,17 +148,9 @@ public class AccessControlResource implements RESTResource {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
 
-        System.out.println("accessControlStr");
-        System.out.println(accessControlStr);
         JsonObject jsonObject = new Gson().fromJson(accessControlStr, JsonObject.class);
         AccessControl accessControl = jsonObjectToAccessControlObject(jsonObject);
-        System.out.println("To an object");
-        System.out.println("UserAccessControl");
-        System.out.println(accessControl.getUserAccessControlSet());
-        System.out.println("Groups");
-        System.out.println(accessControl.getGroups());
-        System.out.println("Roles");
-        System.out.println(accessControl.getRoles());
+        updateAccessControlRegistry(accessControl);
 
         return Response.ok("success").build();
     }
@@ -225,5 +217,51 @@ public class AccessControlResource implements RESTResource {
             }
         }
         return new AccessControl(accessControl, groups, roles);
+    }
+
+    private void updateAccessControlRegistry(AccessControl accessControl) {
+
+        // Update the users
+        for (UserAccessControl userAccessControl : accessControl.getUserAccessControlSet()) {
+            ManagedUser managedUser = (ManagedUser) userRegistry.get(userAccessControl.getName());
+            if (managedUser != null) {
+                Set<String> groups = managedUser.getGroups();
+                groups.addAll(userAccessControl.getGroups());
+                managedUser.setGroups(groups);
+
+                Set<String> roles = managedUser.getRoles();
+                roles.addAll(userAccessControl.getRoles());
+                managedUser.setRoles(roles);
+
+                userRegistry.update(managedUser);
+            }
+        }
+        // Update the groups
+        for (Group newGroup : accessControl.getGroups()) {
+            ManagedGroup managedGroup = (ManagedGroup) groupRegistry.get(newGroup.getGroup());
+            if (managedGroup != null) {
+                Set<String> roles = managedGroup.getRoles();
+                ManagedGroup managedNewGroup = (ManagedGroup) newGroup;
+                roles.addAll(managedNewGroup.getRoles());
+                managedGroup.setRoles(roles);
+                groupRegistry.update(managedGroup);
+            } else {
+                groupRegistry.add(newGroup);
+            }
+        }
+
+        // Update the roles
+        for (Role newRole : accessControl.getRoles()) {
+            ManagedRole managedRole = (ManagedRole) roleRegistry.get(newRole.getRole());
+            if (managedRole != null) {
+                Set<String> itemNames = managedRole.getItemNames();
+                ManagedRole managedNewRole = (ManagedRole) newRole;
+                itemNames.addAll(managedNewRole.getItemNames());
+                managedRole.setItemNames(itemNames);
+                roleRegistry.update(managedRole);
+            } else {
+                roleRegistry.add(newRole);
+            }
+        }
     }
 }
