@@ -11,6 +11,8 @@ import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.auth.*;
@@ -118,104 +120,118 @@ public class AccessControlResource implements RESTResource {
                 (HashSet<Role>) roleRegistry.getAll());
     }
 
-    /**
-     *
-     * @param
-     * @return
-     */
-    @GET
+
+    @PUT
     @PermitAll
-    @Path("/role")
-    @Produces(MediaType.TEXT_PLAIN)
-    @Operation(operationId = "getRoleTest", summary = "Gets the state of an item.", responses = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
-            @ApiResponse(responseCode = "404", description = "Item not found") })
-    public Response getRoleTest() {
-
-        // get item
-        System.out.println("It works getRoleTest");
-        String gson = new Gson().toJson(getAccessControlObject());
-        System.out.println(gson);
-        LinkedList<String> linkedList = new LinkedList<>();
-        linkedList.add("Gson works");
-        System.out.println(new Gson().toJson(linkedList));
-        // we cannot use JSONResponse.createResponse() bc. MediaType.TEXT_PLAIN
-        // return JSONResponse.createResponse(Status.OK, item.getState().toString(), null);
-        return Response.ok(gson).build();
-    }
-
-    /**
-     * Create or Update an item by supplying an item bean.
-     *
-     * @param itemname
-     * @param item the item bean.
-     * @return
-     */
-    @PUT
-    @RolesAllowed({ Role.ADMIN })
-    @Path("/{itemname: [a-zA-Z_0-9]+}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Operation(operationId = "addOrUpdateItemInRegistry", summary = "Adds a new item to the registry or updates the existing item.", security = {
-            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
-                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = EnrichedItemDTO.class))),
-                    @ApiResponse(responseCode = "201", description = "Item created."),
-                    @ApiResponse(responseCode = "400", description = "Payload invalid."),
-                    @ApiResponse(responseCode = "404", description = "Item not found or name in path invalid."),
-                    @ApiResponse(responseCode = "405", description = "Item not editable.") })
-    public Response createOrUpdateItem(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
-            @PathParam("itemname") @Parameter(description = "item name") String itemname,
-            @Parameter(description = "item data", required = true) @Nullable GroupItemDTO item) {
-        System.out.println("success");
-        System.out.println(itemname);
-        System.out.println(item.toString());
-
-        return Response.ok("creatOrUpdateItemWorks").build();
-    }
-
-    /**
-     * Create or Update the access control information.
-     *
-     * @param
-     * @param accessControl
-     * @return
-     */
-    @PUT
-    @RolesAllowed({ Role.ADMIN })
     @Path("/put")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Operation(operationId = "updateAccessControl", summary = "Adds a new item to the registry or updates the existing item.", security = {
-            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
-                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AccessControl.class))),
-                    @ApiResponse(responseCode = "201", description = "Item created."),
-                    @ApiResponse(responseCode = "400", description = "Payload invalid."),
-                    @ApiResponse(responseCode = "404", description = "Item not found or name in path invalid."),
-                    @ApiResponse(responseCode = "405", description = "Item not editable.") })
-    public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
-            @Parameter(description = "access control data", required = true) @Nullable AccessControl accessControl) {
-        System.out.println("success");
-        System.out.println(accessControl.toString());
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Operation(operationId = "updateAccessControl", summary = "update access control information.", responses = {
+                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
+                    @ApiResponse(responseCode = "404", description = "Access Control not found.") })
+    public Response setEnabled(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
+            @Parameter(description = "access control information") String accessControlStr) throws IOException {
 
-        return Response.ok("creatOrUpdateItemWorks").build();
+        Principal principal;
+        try {
+            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+        } catch (IOException io) {
+            principal = verifyToken.anonymousPrincipal;
+        }
+        System.out.println(principal.getName());
+        // We check if the user has the administrator access and we verify the token.
+
+        try {
+            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
+            User user = userRegistry.get(principal.getName());
+            if (user != null) {
+                Set<String> roles = user.getRoles();
+                if (!roles.contains("administrator")) {
+                    return Response.status(Response.Status.BAD_REQUEST).build();
+                }
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+        } catch (IOException io) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+
+        System.out.println("accessControlStr");
+        System.out.println(accessControlStr);
+        JsonObject jsonObject = new Gson().fromJson(accessControlStr, JsonObject.class);
+        AccessControl accessControl = jsonObjectToAccessControlObject(jsonObject);
+        System.out.println("To an object");
+        System.out.println("UserAccessControl");
+        System.out.println(accessControl.getUserAccessControlSet());
+        System.out.println("Groups");
+        System.out.println(accessControl.getGroups());
+        System.out.println("Roles");
+        System.out.println(accessControl.getRoles());
+
+        return Response.ok("success").build();
     }
 
-    @PUT
-    @RolesAllowed({ Role.ADMIN })
-    @Path("/enable")
-    @Consumes(MediaType.TEXT_PLAIN)
-    @Operation(operationId = "enableThing", summary = "Sets the thing enabled status.", security = {
-            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
-                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
-                    @ApiResponse(responseCode = "404", description = "Thing not found.") })
-    public Response setEnabled(
-            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
-            @Parameter(description = "enabled") String enabled) throws IOException {
-        System.out.println("Enabled");
-        System.out.println(enabled);
-        AccessControl accessControl = new Gson().fromJson(enabled, AccessControl.class);
-        System.out.println("To an object");
-        System.out.println(accessControl.getRoles());
-        return Response.ok("thing ok").build();
+    private AccessControl jsonObjectToAccessControlObject(JsonObject jsonObject){
+        //We get the users access control.
+        Set<UserAccessControl> accessControl = new HashSet<>();
+        for(JsonElement jsonElementUserAccessControl : jsonObject.get("userAccessControlSet").getAsJsonArray()){
+            try{
+                JsonObject jsonObjectUserAccessControl = jsonElementUserAccessControl.getAsJsonObject();
+
+                String userName = jsonObjectUserAccessControl.get("name").getAsString();
+                Set<String> userRoles = new HashSet<>();
+                for(JsonElement jsonElementUserRole : jsonObjectUserAccessControl.get("roles").getAsJsonArray()){
+                    userRoles.add(jsonElementUserRole.getAsString());
+                }
+                Set<String> userGroups = new HashSet<>();
+                for(JsonElement jsonElementUserGroup : jsonObjectUserAccessControl.get("groups").getAsJsonArray()){
+                    userGroups.add(jsonElementUserGroup.getAsString());
+                }
+                UserAccessControl userAccessControl = new UserAccessControl(userName,userRoles,userGroups);
+                accessControl.add(userAccessControl);
+            }
+            catch (IllegalStateException ignored){
+
+            }
+        }
+
+        //We get the groups.
+        Set<Group> groups = new HashSet<>();
+        for(JsonElement jsonElementGroups: jsonObject.get("groups").getAsJsonArray()){
+            try {
+                JsonObject jsonObjectGroup = jsonElementGroups.getAsJsonObject();
+
+                String groupName = jsonObjectGroup.get("group").getAsString();
+
+                Set<String> roles = new HashSet<>();
+                for(JsonElement jsonElementRole : jsonObjectGroup.get("roles").getAsJsonArray()){
+                    roles.add(jsonElementRole.getAsString());
+                }
+                ManagedGroup managedGroup = new ManagedGroup(groupName);
+                managedGroup.setRoles(roles);
+                groups.add(managedGroup);
+            }catch (IllegalStateException ignored){
+
+            }
+        }
+        //We get the roles.
+        Set<Role> roles = new HashSet<>();
+        for(JsonElement jsonElementRoles: jsonObject.get("roles").getAsJsonArray()){
+            try {
+                JsonObject jsonObjectRole = jsonElementRoles.getAsJsonObject();
+
+                String roleName = jsonObjectRole.get("role").getAsString();
+
+                Set<String> itemNames = new HashSet<>();
+                for(JsonElement jsonElementItem : jsonObjectRole.get("items").getAsJsonArray()){
+                    itemNames.add(jsonElementItem.getAsString());
+                }
+                ManagedRole managedRole = new ManagedRole(roleName);
+                managedRole.setItemNames(itemNames);
+                roles.add(managedRole);
+            }catch (IllegalStateException ignored){
+
+            }
+        }
+        return new AccessControl(accessControl,groups,roles);
     }
 }
