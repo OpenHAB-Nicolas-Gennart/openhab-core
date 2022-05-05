@@ -74,14 +74,8 @@ public class AccessControlResource implements RESTResource {
             @ApiResponse(responseCode = "404", description = "AccessControl not found") })
     public Response getAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders) {
         Principal principal;
-        try {
-            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-        } catch (IOException io) {
-            principal = verifyToken.anonymousPrincipal;
-        }
-        System.out.println(principal.getName());
-        // We check if the user has the administrator access and we verify the token.
 
+        // We check if the user has the administrator access and we verify the token.
         try {
             principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
             User user = userRegistry.get(principal.getName());
@@ -98,8 +92,6 @@ public class AccessControlResource implements RESTResource {
         }
         Gson gson = new Gson();
         String resp = gson.toJson(getAccessControlObject());
-        System.out.println("getAccessControl works");
-        System.out.println(resp);
         return Response.ok(resp).build();
     }
 
@@ -125,14 +117,8 @@ public class AccessControlResource implements RESTResource {
             @Parameter(description = "access control information") String accessControlStr) throws IOException {
 
         Principal principal;
-        try {
-            principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-        } catch (IOException io) {
-            principal = verifyToken.anonymousPrincipal;
-        }
-        System.out.println(principal.getName());
-        // We check if the user has the administrator access and we verify the token.
 
+        // We check if the user has the administrator access and we verify the token.
         try {
             principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
             User user = userRegistry.get(principal.getName());
@@ -155,6 +141,12 @@ public class AccessControlResource implements RESTResource {
         return Response.ok("success").build();
     }
 
+    /**
+     * Transform the receive JsonObject from the client side to an AccessControl object.
+     *
+     * @param jsonObject receive from the client side
+     * @return an AccessControl object
+     */
     private AccessControl jsonObjectToAccessControlObject(JsonObject jsonObject) {
         // We get the users access control.
         Set<UserAccessControl> accessControl = new HashSet<>();
@@ -219,6 +211,11 @@ public class AccessControlResource implements RESTResource {
         return new AccessControl(accessControl, groups, roles);
     }
 
+    /**
+     * Update the AccessControl object in the UserRegistry, GroupRegistry and RoleRegistry.
+     *
+     * @param accessControl object that has to be put to the registries.
+     */
     private void updateAccessControlRegistry(AccessControl accessControl) {
 
         // Update the users
