@@ -147,56 +147,6 @@ public class AccessControlResource implements RESTResource {
     /**
      * Create or Update an item by supplying an item bean.
      *
-     * @return
-     */
-    @PUT
-    @PermitAll
-    @Path("/{put: [a-zA-Z_0-9]+}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    // @Produces(MediaType.TEXT_PLAIN)
-    @Operation(operationId = "updateAccessControl", summary = "update access control", responses = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
-            @ApiResponse(responseCode = "201", description = "Access control updated."),
-            @ApiResponse(responseCode = "400", description = "Payload invalid.") })
-    public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
-            @PathParam("put") @Parameter(description = "put the access control information") String put,
-            @Parameter(description = "array of item data", required = true) AccessControl accessControl) {
-        /*
-         * Principal principal;
-         * try {
-         * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-         * } catch (IOException io) {
-         * principal = verifyToken.anonymousPrincipal;
-         * }
-         * System.out.println(principal.getName());
-         * // We check if the user has the administrator access and we verify the token.
-         *
-         * try {
-         * principal = verifyToken.getPrincipalFromRequestContext(httpHeaders);
-         * User user = userRegistry.get(principal.getName());
-         * if (user != null) {
-         * Set<String> roles = user.getRoles();
-         * if (!roles.contains("administrator")) {
-         * return Response.status(Response.Status.BAD_REQUEST).build();
-         * }
-         * } else {
-         * return Response.status(Response.Status.BAD_REQUEST).build();
-         * }
-         * } catch (IOException io) {
-         * return Response.status(Response.Status.BAD_REQUEST).build();
-         * }
-         */
-        System.out.println("It works PUT!!");
-        System.out.println(accessControl);
-        System.out.println("roles of accessControl PUT");
-        System.out.println(accessControl.getRoles().toString());
-
-        return Response.ok("It works!!!").build();
-    }
-
-    /**
-     * Create or Update an item by supplying an item bean.
-     *
      * @param itemname
      * @param item the item bean.
      * @return
@@ -221,5 +171,51 @@ public class AccessControlResource implements RESTResource {
         System.out.println(item.toString());
 
         return Response.ok("creatOrUpdateItemWorks").build();
+    }
+
+    /**
+     * Create or Update the access control information.
+     *
+     * @param
+     * @param accessControl
+     * @return
+     */
+    @PUT
+    @RolesAllowed({ Role.ADMIN })
+    @Path("/put")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Operation(operationId = "updateAccessControl", summary = "Adds a new item to the registry or updates the existing item.", security = {
+            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
+                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = AccessControl.class))),
+                    @ApiResponse(responseCode = "201", description = "Item created."),
+                    @ApiResponse(responseCode = "400", description = "Payload invalid."),
+                    @ApiResponse(responseCode = "404", description = "Item not found or name in path invalid."),
+                    @ApiResponse(responseCode = "405", description = "Item not editable.") })
+    public Response updateAccessControl(final @Context UriInfo uriInfo, final @Context HttpHeaders httpHeaders,
+            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
+            @Parameter(description = "access control data", required = true) @Nullable AccessControl accessControl) {
+        System.out.println("success");
+        System.out.println(accessControl.toString());
+
+        return Response.ok("creatOrUpdateItemWorks").build();
+    }
+
+    @PUT
+    @RolesAllowed({ Role.ADMIN })
+    @Path("/enable")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Operation(operationId = "enableThing", summary = "Sets the thing enabled status.", security = {
+            @SecurityRequirement(name = "oauth2", scopes = { "admin" }) }, responses = {
+                    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class))),
+                    @ApiResponse(responseCode = "404", description = "Thing not found.") })
+    public Response setEnabled(
+            @HeaderParam(HttpHeaders.ACCEPT_LANGUAGE) @Parameter(description = "language") @Nullable String language,
+            @Parameter(description = "enabled") String enabled) throws IOException {
+        System.out.println("Enabled");
+        System.out.println(enabled);
+        AccessControl accessControl = new Gson().fromJson(enabled, AccessControl.class);
+        System.out.println("To an object");
+        System.out.println(accessControl.getRoles());
+        return Response.ok("thing ok").build();
     }
 }
