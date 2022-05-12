@@ -182,8 +182,23 @@ public class ManagedUser implements User {
 
     @Override
     public String toString() {
+        if (this.roles != null && this.groups != null) {
+            return name + " role(s): (" + String.join(", ", this.roles.stream().toArray(String[]::new))
+                    + ") group(s): (" + String.join(", ", this.groups.stream().toArray(String[]::new)) + ")";
+        } else if (this.roles == null && this.groups == null) {
+            this.roles = new HashSet<>();
+            this.groups = new HashSet<>();
+            return name + " role(s): (" + String.join(", ", this.roles.stream().toArray(String[]::new))
+                    + ") group(s): (" + String.join(", ", this.groups.stream().toArray(String[]::new)) + ")";
+        } else if (this.roles == null) {
+            this.roles = new HashSet<>();
+            return name + " role(s): (" + String.join(", ", this.roles.stream().toArray(String[]::new))
+                    + ") group(s): (" + String.join(", ", this.groups.stream().toArray(String[]::new)) + ")";
+        } else {
+            this.groups = new HashSet<>();
+            return name + " role(s): (" + String.join(", ", this.roles.stream().toArray(String[]::new))
+                    + ") group(s): (" + String.join(", ", this.groups.stream().toArray(String[]::new)) + ")";
 
-        return name + " role(s): (" + String.join(", ", roles.stream().toArray(String[]::new)) + ") group(s): ("
-                + String.join(", ", groups.stream().toArray(String[]::new)) + ")";
+        }
     }
 }
