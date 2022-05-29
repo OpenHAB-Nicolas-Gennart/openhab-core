@@ -198,7 +198,7 @@ public class AccessControlResource implements RESTResource {
                 String roleName = jsonObjectRole.get("role").getAsString();
 
                 Set<String> itemNames = new HashSet<>();
-                for (JsonElement jsonElementItem : jsonObjectRole.get("items").getAsJsonArray()) {
+                for (JsonElement jsonElementItem : jsonObjectRole.get("itemNames").getAsJsonArray()) {
                     itemNames.add(jsonElementItem.getAsString());
                 }
                 ManagedRole managedRole = new ManagedRole(roleName);

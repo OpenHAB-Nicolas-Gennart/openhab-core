@@ -134,6 +134,31 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
     }
 
     @Override
+    public String addUserApiToken(User user, String name, String scope) {
+        if (!(user instanceof ManagedUser)) {
+            throw new IllegalArgumentException("User is not managed: " + user.getName());
+        }
+        if (!name.matches("[a-zA-Z0-9]*")) {
+            throw new IllegalArgumentException("API token name format invalid, alphanumeric characters only");
+        }
+
+        ManagedUser managedUser = (ManagedUser) user;
+        String tokenSalt = generateSalt(KEY_LENGTH / 8).get();
+        byte[] rnd = new byte[64];
+        RAND.nextBytes(rnd);
+        String token = APITOKEN_PREFIX + "." + name + "."
+                + Base64.getEncoder().encodeToString(rnd).replaceAll("(\\+|/|=)", "");
+        String tokenHash = hash(token, tokenSalt, APITOKEN_ITERATIONS).get();
+
+        UserApiToken userApiToken = new UserApiToken(name, tokenHash + ":" + tokenSalt, scope);
+
+        managedUser.getApiTokens().add(userApiToken);
+        update(user);
+
+        return token;
+    }
+
+    @Override
     public Authentication authenticate(Credentials credentials) throws AuthenticationException {
         if (credentials instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials usernamePasswordCreds = (UsernamePasswordCredentials) credentials;
@@ -461,30 +486,7 @@ public class UserRegistryImpl extends AbstractRegistry<User, String, UserProvide
         update(user);
     }
 
-    @Override
-    public String addUserApiToken(User user, String name, String scope) {
-        if (!(user instanceof ManagedUser)) {
-            throw new IllegalArgumentException("User is not managed: " + user.getName());
-        }
-        if (!name.matches("[a-zA-Z0-9]*")) {
-            throw new IllegalArgumentException("API token name format invalid, alphanumeric characters only");
-        }
 
-        ManagedUser managedUser = (ManagedUser) user;
-        String tokenSalt = generateSalt(KEY_LENGTH / 8).get();
-        byte[] rnd = new byte[64];
-        RAND.nextBytes(rnd);
-        String token = APITOKEN_PREFIX + "." + name + "."
-                + Base64.getEncoder().encodeToString(rnd).replaceAll("(\\+|/|=)", "");
-        String tokenHash = hash(token, tokenSalt, APITOKEN_ITERATIONS).get();
-
-        UserApiToken userApiToken = new UserApiToken(name, tokenHash + ":" + tokenSalt, scope);
-
-        managedUser.getApiTokens().add(userApiToken);
-        update(user);
-
-        return token;
-    }
 
     @Override
     public void removeUserApiToken(User user, UserApiToken userApiToken) {
